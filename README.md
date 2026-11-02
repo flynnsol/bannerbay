@@ -18,6 +18,8 @@ no sign-up, and nothing you create ever leaves your browser.
 
 - **Sizes:** README banner (1520×400), social/OG card (1200×630), square, and 16:9.
 - **Themes:** six one-click looks (Midnight, Paper, Neon, Ocean, Sunset, Forest), shown as thumbnails of your own banner.
+- **Fonts:** pick a heading font and a body font from 14 bundled, open-licence Google fonts (JetBrains Mono, Inter,
+  Playfair Display, Bebas Neue and more) or your system's. They are embedded in PNG and SVG exports.
 - **Backgrounds:** solid, gradient, grid or dots, with an accent glow and rounded corners.
 - **Text:** name, tag, header, description and a badge in the top-right corner. Wrap header words in `*asterisks*` to
   colour them with the Highlight colour (`\*` for a literal asterisk).
@@ -75,11 +77,16 @@ The layout, wrapping, emphasis parsing, themes (including a contrast check) and 
 default look is pinned by golden SVG files in `tests/golden`; regenerate them on purpose with
 `BB_UPDATE_GOLDEN=1 cargo test`.
 
+## Fonts
+
+The bundled fonts are variable (or single-weight) Latin subsets from [Fontsource](https://fontsource.org), all under the
+SIL Open Font License; the licences are in `assets/fonts/licenses`. Exports embed the fonts a banner uses, so a PNG or SVG
+looks the same on any machine.
+
 ## Known limits
 
-- Banners use your system's fonts for now, so exports can differ between machines. Bundled Google Fonts and font
-  embedding in exports are planned.
-- Text wrapping uses average glyph widths, so it is approximate. A warning appears if content overflows the canvas.
+- Text wrapping and pill sizes use average glyph widths, so they are approximate. A warning appears if content overflows
+  the canvas.
 
 ## License
 

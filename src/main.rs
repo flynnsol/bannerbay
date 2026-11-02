@@ -1,6 +1,8 @@
 #[allow(dead_code)] // wired into the renderer by T30
 mod emphasis;
 mod export;
+mod fonts;
+mod measure;
 mod model;
 mod render;
 mod storage;
@@ -25,6 +27,7 @@ fn app() -> Element {
         document::Link { rel: "alternate icon", href: FAVICON_ICO, sizes: "32x32" }
         document::Link { rel: "apple-touch-icon", href: APPLE_TOUCH_ICON }
         document::Stylesheet { href: MAIN_CSS }
+        style { dangerous_inner_html: fonts::font_face_css() }
         ui::App {}
     }
 }

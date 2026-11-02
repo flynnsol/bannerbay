@@ -11,6 +11,35 @@ pub struct Rendered {
     pub overflow: bool,
 }
 
+/// How wide text is. By default an estimate from each font's average character width; the browser
+/// supplies real measurements (see `measure.rs`), which fixes labels whose letters are wider than
+/// average, such as capitals.
+pub struct Metrics<'a> {
+    measure: Option<&'a dyn Fn(&str, &FontInfo, u32, f64) -> f64>,
+}
+
+impl<'a> Metrics<'a> {
+    pub const ESTIMATE: Metrics<'static> = Metrics { measure: None };
+
+    /// `measure(text, font, weight, size)` returns the text's width in pixels.
+    #[allow(dead_code)] // the browser measurer in `measure.rs` (T36) uses this
+    pub fn measured(measure: &'a dyn Fn(&str, &FontInfo, u32, f64) -> f64) -> Self {
+        Metrics { measure: Some(measure) }
+    }
+
+    pub fn is_measured(&self) -> bool {
+        self.measure.is_some()
+    }
+
+    /// Width in pixels of `text` set in `font` at `weight` and `size`.
+    pub fn width(&self, text: &str, font: &FontInfo, weight: u32, size: f64) -> f64 {
+        match self.measure {
+            Some(measure) => measure(text, font, weight, size),
+            None => text.chars().count() as f64 * size * font.char_width,
+        }
+    }
+}
+
 pub fn escape(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
@@ -26,28 +55,14 @@ pub fn escape(s: &str) -> String {
     out
 }
 
-/// Greedy word wrap that also honours explicit newlines.
+/// Greedy word wrap that also honours explicit newlines, counting characters (kept for tests).
+#[cfg(test)]
 pub fn wrap(text: &str, max_chars: usize) -> Vec<String> {
-    let max_chars = max_chars.max(8);
-    let mut lines = Vec::new();
-    for para in text.lines() {
-        let mut cur = String::new();
-        for word in para.split_whitespace() {
-            if cur.is_empty() {
-                cur = word.to_string();
-            } else if cur.chars().count() + 1 + word.chars().count() <= max_chars {
-                cur.push(' ');
-                cur.push_str(word);
-            } else {
-                lines.push(std::mem::take(&mut cur));
-                cur = word.to_string();
-            }
-        }
-        if !cur.is_empty() {
-            lines.push(cur);
-        }
-    }
-    lines
+    let spans = [Span { text: text.to_string(), emphasis: false }];
+    emphasis::wrap(&spans, max_chars)
+        .into_iter()
+        .map(|line| line.into_iter().map(|span| span.text).collect())
+        .collect()
 }
 
 fn mark_svg(cfg: &Config, x: f64, y: f64, size: f64) -> Option<String> {
@@ -87,6 +102,11 @@ fn mark_svg(cfg: &Config, x: f64, y: f64, size: f64) -> Option<String> {
     Some(format!(r#"<g transform="translate({x:.1} {y:.1}) scale({k:.4})">{body}</g>"#))
 }
 
+/// Keeps `weight` inside what `font` really has, so the browser never fakes a bold.
+fn weight_for(font: &FontInfo, weight: u32) -> u32 {
+    weight.clamp(font.weights.0 as u32, font.weights.1 as u32)
+}
+
 fn text_el(x: f64, y: f64, size: f64, weight: u32, fill: &str, opacity: f64, extra: &str, s: &str) -> String {
     text_el_raw(x, y, size, weight, fill, opacity, extra, &escape(s))
 }
@@ -113,7 +133,7 @@ fn spans_markup(spans: &[Span], highlight: &str) -> String {
 }
 
 /// The pill in the top-right corner, with its top edge at `top`. `None` when the badge is empty.
-fn badge_svg(cfg: &Config, u: f64, wf: f64, p: f64, top: f64) -> Option<String> {
+fn badge_svg(cfg: &Config, m: &Metrics, u: f64, wf: f64, p: f64, top: f64) -> Option<String> {
     let badge = cfg.badge.trim();
     if badge.is_empty() {
         return None;
@@ -121,17 +141,18 @@ fn badge_svg(cfg: &Config, u: f64, wf: f64, p: f64, top: f64) -> Option<String> 
     let a = &cfg.accent;
     let st = &cfg.style.badge;
     let pill = Pill::new(&st.pill, u);
-    let bw = badge.chars().count() as f64 * pill.fs * cfg.font.char_width() + 2.0 * pill.padx;
+    let bw = m.width(badge, cfg.body(), weight_for(cfg.body(), 700), pill.fs) + 2.0 * pill.padx;
     let bx = wf - p - bw - st.offset_x * u;
     let mut s = format!(
         r#"<rect x="{bx:.1}" y="{top:.1}" width="{bw:.1}" height="{:.1}" rx="{:.1}" fill="{a}" fill-opacity="{}" stroke="{a}" stroke-opacity="0.7" stroke-width="{:.1}"/>"#,
         pill.h, pill.radius, pill.fill, pill.border
     );
-    s.push_str(&text_el(bx + bw / 2.0, top + pill.h / 2.0 + pill.fs * 0.35, pill.fs, 700, a, 1.0, r#"text-anchor="middle""#, badge));
+    s.push_str(&text_el(bx + bw / 2.0, top + pill.h / 2.0 + pill.fs * 0.35, pill.fs, weight_for(cfg.body(), 700), a, 1.0, r#"text-anchor="middle""#, badge));
     Some(s)
 }
 
-/// Renders with the default id prefix (used by the preview and exports).
+/// Renders with the default id prefix and estimated widths (tests; the app uses `render_with_metrics`).
+#[cfg(test)]
 pub fn render(cfg: &Config) -> Rendered {
     render_with_id(cfg, "bb")
 }
@@ -139,13 +160,21 @@ pub fn render(cfg: &Config) -> Rendered {
 /// Renders with `id` as the prefix of every internal SVG id (`<id>-grad`, `<id>-clip`, ...).
 /// SVGs placed in the same page must use different prefixes: ids are page-global, so a clash makes
 /// every SVG silently use the first one's gradients and patterns.
+#[cfg(test)]
 pub fn render_with_id(cfg: &Config, id: &str) -> Rendered {
+    render_with_metrics(cfg, id, &Metrics::ESTIMATE)
+}
+
+/// `render_with_id` with real or estimated text widths.
+pub fn render_with_metrics(cfg: &Config, id: &str, m: &Metrics) -> Rendered {
     let (w, h) = cfg.preset.size();
     let (wf, hf) = (w as f64, h as f64);
     // Everything scales from one unit so every preset keeps the same proportions.
     let u = (hf / 630.0).min(wf / 1200.0);
     let p = 64.0 * u;
-    let cw = cfg.font.char_width();
+    let (body, head) = (cfg.body(), cfg.heading());
+    // Only the name and header need their own `font-family`; everything else inherits the root's.
+    let head_font = if head.stack != body.stack { format!(r#"font-family="{}""#, head.stack) } else { String::new() };
     let t = &cfg.text;
     let a = &cfg.accent;
     let radius = cfg.radius as f64;
@@ -154,7 +183,7 @@ pub fn render_with_id(cfg: &Config, id: &str) -> Rendered {
     let _ = write!(
         s,
         r#"<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}" font-family="{}">"#,
-        cfg.font.stack()
+        body.stack
     );
 
     // ---- background -------------------------------------------------------
@@ -216,23 +245,23 @@ pub fn render_with_id(cfg: &Config, id: &str) -> Rendered {
         && !cfg.name.trim().is_empty();
     if lockup {
         let name = cfg.name.trim();
-        let name_w = name.chars().count() as f64 * cw; // in units of font size
         let has_mark = mark_svg(cfg, 0.0, 0.0, 1.0).is_some();
         // Style values are multipliers here: 1x at the defaults.
         let ms = &cfg.style.mark;
-        let (m, g, n) = (ms.size / 48.0, ms.gap / 16.0, ms.name_size / 28.0);
-        let extra = if has_mark { 1.2 * m + 0.36 * g } else { 0.0 }; // mark + gap, in font sizes
+        let (mk, g, n) = (ms.size / 48.0, ms.gap / 16.0, ms.name_size / 28.0);
+        let weight = weight_for(head, (ms.name_weight as u32 + 100).min(900));
+        let name_w = m.width(name, head, weight, 100.0) / 100.0; // in font sizes
+        let extra = if has_mark { 1.2 * mk + 0.36 * g } else { 0.0 }; // mark + gap, in font sizes
         let fs = (hf * 0.25 * n).min(wf * 0.78 / (extra + name_w));
         let total = fs * (extra + name_w);
         let mut x = (wf - total) / 2.0;
-        let mark_size = fs * 1.2 * m;
+        let mark_size = fs * 1.2 * mk;
         if let Some(mk) = mark_svg(cfg, x, hf / 2.0 - mark_size / 2.0, mark_size) {
             s.push_str(&mk);
             x += mark_size + fs * 0.36 * g;
         }
-        let weight = (ms.name_weight as u32 + 100).min(900);
-        s.push_str(&text_el(x, hf / 2.0 + fs * 0.35, fs, weight, t, 1.0, "", name));
-        if let Some(b) = badge_svg(cfg, u, wf, p, p + cfg.style.badge.offset_y * u) {
+        s.push_str(&text_el(x, hf / 2.0 + fs * 0.35, fs, weight, t, 1.0, &head_font, name));
+        if let Some(b) = badge_svg(cfg, m, u, wf, p, p + cfg.style.badge.offset_y * u) {
             s.push_str(&b);
         }
         s.push_str("</svg>");
@@ -258,7 +287,7 @@ pub fn render_with_id(cfg: &Config, id: &str) -> Rendered {
             x += logo_size + ms.gap * u;
         }
         if has_name {
-            s.push_str(&text_el(x, p + row_h / 2.0 + name_fs * 0.35, name_fs, ms.name_weight as u32, t, 1.0, "", cfg.name.trim()));
+            s.push_str(&text_el(x, p + row_h / 2.0 + name_fs * 0.35, name_fs, weight_for(head, ms.name_weight as u32), t, 1.0, &head_font, cfg.name.trim()));
         }
         bottom = p + row_h;
         y = bottom + ms.space_after * u;
@@ -266,7 +295,7 @@ pub fn render_with_id(cfg: &Config, id: &str) -> Rendered {
 
     let badge_h = Pill::new(&cfg.style.badge.pill, u).h;
     let badge_top = if has_row { p + row_h / 2.0 - badge_h / 2.0 } else { p } + cfg.style.badge.offset_y * u;
-    if let Some(b) = badge_svg(cfg, u, wf, p, badge_top) {
+    if let Some(b) = badge_svg(cfg, m, u, wf, p, badge_top) {
         s.push_str(&b);
         if !has_row {
             bottom = badge_top + badge_h;
@@ -280,7 +309,7 @@ pub fn render_with_id(cfg: &Config, id: &str) -> Rendered {
         let ts = &cfg.style.tag;
         let fs = ts.size * u;
         let extra = format!(r#"letter-spacing="{:.1}""#, ts.letter_spacing * u);
-        s.push_str(&text_el(p, y + fs, fs, 700, a, 1.0, &extra, &tag.to_uppercase()));
+        s.push_str(&text_el(p, y + fs, fs, weight_for(body, 700), a, 1.0, &extra, &tag.to_uppercase()));
         bottom = y + fs;
         y = bottom + ts.space_after * u;
     }
@@ -290,7 +319,8 @@ pub fn render_with_id(cfg: &Config, id: &str) -> Rendered {
     let pill = Pill::new(&cfg.style.pill, u);
     let column = cfg.layout == FeatureLayout::Vertical && !features.is_empty();
     // Vertical layout: equal-width pills in a column on the right, centred top to bottom.
-    let col_w = features.iter().map(|f| pill.width(f, cw)).fold(0.0_f64, f64::max);
+    let pill_weight = weight_for(body, 500);
+    let col_w = features.iter().map(|f| pill.width(f, m, body, pill_weight)).fold(0.0_f64, f64::max);
     let col_x = wf - p - col_w;
     let col_h = features.len() as f64 * (pill.h + pill.gap) - pill.gap;
     let col_y = (hf - col_h) / 2.0;
@@ -304,12 +334,17 @@ pub fn render_with_id(cfg: &Config, id: &str) -> Rendered {
     let hs = &cfg.style.header;
     let header_fs = hs.size * u;
     let header_spans = emphasis::parse(cfg.header.trim());
-    let lines = emphasis::wrap(&header_spans, (text_w / (header_fs * cw * 1.04)) as usize);
+    let header_weight = weight_for(head, hs.weight as u32);
+    // The estimate is padded 4% (bold text is wider than average); real measurements need no padding.
+    let slack = if m.is_measured() { 1.0 } else { 1.04 };
+    let lines = emphasis::wrap_by(&header_spans, text_w.max(8.0 * header_fs * head.char_width * slack), &|t| {
+        m.width(t, head, header_weight, header_fs) * slack
+    });
     let lh = header_fs * hs.line_height;
     let highlight = cfg.highlight_color();
     for (i, line) in lines.iter().enumerate() {
         let inner = spans_markup(line, highlight);
-        s.push_str(&text_el_raw(p, y + header_fs * 0.85 + i as f64 * lh, header_fs, hs.weight as u32, t, 1.0, "", &inner));
+        s.push_str(&text_el_raw(p, y + header_fs * 0.85 + i as f64 * lh, header_fs, header_weight, t, 1.0, &head_font, &inner));
     }
     if !lines.is_empty() {
         bottom = y + lines.len() as f64 * lh;
@@ -320,10 +355,17 @@ pub fn render_with_id(cfg: &Config, id: &str) -> Rendered {
     let ds = &cfg.style.desc;
     let desc_fs = ds.size * u;
     let desc_w = text_w.min(840.0 * u);
-    let lines = wrap(cfg.description.trim(), (desc_w / (desc_fs * cw)) as usize);
+    let desc_weight = weight_for(body, ds.weight as u32);
+    let desc_spans = [Span { text: cfg.description.trim().to_string(), emphasis: false }];
+    let lines: Vec<String> = emphasis::wrap_by(&desc_spans, desc_w.max(8.0 * desc_fs * body.char_width), &|t| {
+        m.width(t, body, desc_weight, desc_fs)
+    })
+    .into_iter()
+    .map(|line| line.into_iter().map(|span| span.text).collect())
+    .collect();
     let lh = desc_fs * ds.line_height;
     for (i, line) in lines.iter().enumerate() {
-        s.push_str(&text_el(p, y + desc_fs * 0.95 + i as f64 * lh, desc_fs, ds.weight as u32, t, ds.opacity.clamp(0.0, 1.0), "", line));
+        s.push_str(&text_el(p, y + desc_fs * 0.95 + i as f64 * lh, desc_fs, desc_weight, t, ds.opacity.clamp(0.0, 1.0), "", line));
     }
     if !lines.is_empty() {
         bottom = y + lines.len() as f64 * lh;
@@ -345,7 +387,7 @@ pub fn render_with_id(cfg: &Config, id: &str) -> Rendered {
     } else if !features.is_empty() {
         let (mut x, mut row_y) = (p, y);
         for f in &features {
-            let pw = pill.width(f, cw);
+            let pw = pill.width(f, m, body, pill_weight);
             if x + pw > wf - p && x > p {
                 x = p;
                 row_y += pill.h + pill.gap;
@@ -388,8 +430,8 @@ impl Pill {
         }
     }
 
-    fn width(&self, label: &str, char_width: f64) -> f64 {
-        label.chars().count() as f64 * self.fs * char_width + 2.0 * self.padx + self.dot
+    fn width(&self, label: &str, m: &Metrics, font: &FontInfo, weight: u32) -> f64 {
+        m.width(label, font, weight, self.fs) + 2.0 * self.padx + self.dot
     }
 }
 
@@ -407,7 +449,7 @@ fn pill_svg(cfg: &Config, pill: &Pill, x: f64, y: f64, w: f64, label: &str) -> S
         y + pill.h / 2.0,
         pill.dot * 4.0 / 14.0
     );
-    s.push_str(&text_el(x + pill.padx + pill.dot, y + pill.h / 2.0 + pill.fs * 0.35, pill.fs, 500, t, 0.9, "", label));
+    s.push_str(&text_el(x + pill.padx + pill.dot, y + pill.h / 2.0 + pill.fs * 0.35, pill.fs, weight_for(cfg.body(), 500), t, 0.9, "", label));
     s
 }
 
@@ -821,5 +863,151 @@ mod tests {
     fn default_prefix_is_bb() {
         let (ids, _) = ids_and_refs(&render(&Config::default()).svg);
         assert!(ids.iter().all(|i| i.starts_with("bb-")), "{ids:?}");
+    }
+
+    #[test]
+    fn font_keys_are_unique_and_the_default_exists() {
+        let mut keys: Vec<_> = FONTS.iter().map(|f| f.key).collect();
+        keys.sort();
+        keys.dedup();
+        assert_eq!(keys.len(), FONTS.len());
+        assert_eq!(font_info(DEFAULT_FONT).key, DEFAULT_FONT);
+        assert_eq!(font_info("no-such-font").key, DEFAULT_FONT);
+        assert!(FONTS.iter().all(|f| f.char_width > 0.3 && f.char_width < 1.0 && !f.stack.is_empty()));
+    }
+
+    #[test]
+    fn default_fonts_add_no_font_family_overrides() {
+        let svg = render(&Config::default()).svg;
+        // The only font-family is the root's.
+        assert_eq!(svg.matches("font-family=").count(), 1);
+    }
+
+    #[test]
+    fn a_different_heading_font_only_overrides_the_name_and_header() {
+        let cfg = Config { heading_font: "system-sans".into(), ..Config::default() };
+        let svg = render(&cfg).svg;
+        let sans = font_info("system-sans").stack;
+        let with_family = |needle: &str| svg.split("<text ").find(|t| t.contains(needle)).unwrap().contains(&format!(r#"font-family="{sans}""#));
+        assert!(with_family(">bannerbay<"), "name uses the heading font");
+        assert!(with_family("Ship your"), "header uses the heading font");
+        assert!(!with_family("Design README"), "description keeps the body font");
+        assert!(!with_family("OPEN SOURCE"), "tag keeps the body font");
+        // The root still carries the body font.
+        assert!(svg.starts_with(&format!(r#"<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="{}""#, font_info(DEFAULT_FONT).stack)));
+    }
+
+    #[test]
+    fn heading_and_body_widths_use_their_own_font() {
+        let lines = |heading: &str, body: &str| {
+            let cfg = Config {
+                heading_font: heading.into(),
+                body_font: body.into(),
+                // Short words so the line-length difference between fonts shows up.
+                header: "abc ".repeat(40),
+                description: "abc ".repeat(100),
+                ..Config::default()
+            };
+            let svg = render(&cfg).svg;
+            let count = |marker: &str| svg.split("<text ").filter(|t| t.contains(marker)).count();
+            (count(r#"font-weight="800""#), count(r#"fill-opacity="0.72""#))
+        };
+        let (h_mono, d_mono) = lines("system-mono", "system-mono");
+        let (h_sans, d_mono_body) = lines("system-sans", "system-mono");
+        assert!(h_sans < h_mono, "a narrower heading font fits more per line");
+        assert_eq!(d_mono, d_mono_body, "the description wraps by the body font");
+        let (_, d_sans) = lines("system-mono", "system-sans");
+        assert!(d_sans < d_mono, "a narrower body font fits more per line");
+    }
+
+    #[test]
+    fn text_stays_inside_the_fonts_real_weight_range() {
+        let weights = |svg: &str| -> Vec<u32> {
+            svg.split("font-weight=\"").skip(1).map(|r| r.split('"').next().unwrap().parse().unwrap()).collect()
+        };
+        // Bebas Neue only has weight 400; the default header weight of 800 must not be requested.
+        let single = Config { heading_font: "bebas-neue".into(), body_font: "bebas-neue".into(), ..Config::default() };
+        assert!(weights(&render(&single).svg).iter().all(|w| *w == 400), "{:?}", weights(&render(&single).svg));
+        // Fira Code stops at 700.
+        let fira = Config { heading_font: "fira-code".into(), body_font: "fira-code".into(), ..Config::default() };
+        assert!(weights(&render(&fira).svg).iter().all(|w| (300..=700).contains(w)));
+        // A font with the full range leaves weights alone.
+        let inter = Config { heading_font: "inter".into(), body_font: "inter".into(), ..Config::default() };
+        assert!(weights(&render(&inter).svg).contains(&800));
+    }
+
+    #[test]
+    fn every_font_renders_the_default_content_without_overflow() {
+        for font in FONTS {
+            let cfg = Config { heading_font: font.key.into(), body_font: font.key.into(), ..Config::default() };
+            let r = render(&cfg);
+            assert!(r.svg.starts_with("<svg"), "{}", font.key);
+            assert!(!r.overflow, "{} overflows the social card", font.key);
+        }
+    }
+
+    #[test]
+    fn the_default_font_is_bundled_and_monospace() {
+        let d = font_info(DEFAULT_FONT);
+        assert!(!d.family.is_empty() && d.char_width == 0.6);
+    }
+
+    /// A measurer where capitals are twice as wide as other letters, like the real problem.
+    fn capitals_wide(text: &str, font: &FontInfo, _weight: u32, size: f64) -> f64 {
+        text.chars().map(|c| if c.is_uppercase() { 1.0 } else { 0.5 } * size * font.char_width).sum()
+    }
+
+    fn pill_widths(svg: &str) -> Vec<f64> {
+        svg.split("<rect ").filter(|r| r.contains(r#"stroke-opacity="0.22""#)).map(|r| nums(&format!("<rect {r}"), "width")[0]).collect()
+    }
+
+    #[test]
+    fn measured_widths_size_the_pills_to_their_labels() {
+        let cfg = Config { features: "PNG & SVG export\nok".into(), ..Config::default() };
+        let estimated = render(&cfg).svg;
+        let measure = |t: &str, f: &FontInfo, w: u32, s: f64| capitals_wide(t, f, w, s);
+        let measured = render_with_metrics(&cfg, "bb", &Metrics::measured(&measure)).svg;
+        let (e, m) = (pill_widths(&estimated), pill_widths(&measured));
+        assert_eq!((e.len(), m.len()), (2, 2));
+        // "PNG & SVG export" has 6 capitals: measured is wider than the same-length lowercase text.
+        let fs = 20.0 * (630.0 / 630.0);
+        let want = capitals_wide("PNG & SVG export", font_info(DEFAULT_FONT), 500, fs) + 2.0 * 18.0 + 14.0;
+        assert!((m[0] - want).abs() < 0.2, "pill {} vs text-derived {}", m[0], want);
+        assert_ne!(e[0], m[0]);
+        // The label always fits: the pill is at least as wide as text plus padding.
+        assert!(m[0] >= capitals_wide("PNG & SVG export", font_info(DEFAULT_FONT), 500, fs) + 2.0 * 18.0);
+    }
+
+    #[test]
+    fn measured_widths_change_where_text_wraps() {
+        let cfg = Config { header: "Ship your launch banner in seconds".into(), ..Config::default() };
+        let lines = |m: &Metrics| render_with_metrics(&cfg, "bb", m).svg.split("<text ").filter(|t| t.contains("font-weight=\"800\"")).count();
+        let estimate = lines(&Metrics::ESTIMATE);
+        let narrow = |_: &str, _: &FontInfo, _: u32, _: f64| 0.0_f64;
+        let tiny = |t: &str, _: &FontInfo, _: u32, s: f64| t.chars().count() as f64 * s * 0.2;
+        let huge = |t: &str, _: &FontInfo, _: u32, s: f64| t.chars().count() as f64 * s * 1.2;
+        assert_eq!(lines(&Metrics::measured(&narrow)), 1, "zero-width text never wraps");
+        assert!(lines(&Metrics::measured(&tiny)) < estimate, "narrow glyphs fit on fewer lines");
+        assert!(lines(&Metrics::measured(&huge)) > estimate, "wide glyphs need more lines");
+    }
+
+    #[test]
+    fn measured_widths_drive_the_badge_and_the_lockup() {
+        let wide = |t: &str, _: &FontInfo, _: u32, s: f64| t.chars().count() as f64 * s * 1.0;
+        let base = |c: &Config, m: &Metrics| render_with_metrics(c, "bb", m).svg;
+        let cfg = Config { badge: "v0.1".into(), ..Config::default() };
+        let badge_w = |svg: &str| nums(&format!("<rect {}", svg.split("<rect ").find(|r| r.contains(r#"stroke-opacity="0.7""#)).unwrap()), "width")[0];
+        assert!(badge_w(&base(&cfg, &Metrics::measured(&wide))) > badge_w(&base(&cfg, &Metrics::ESTIMATE)));
+        // Lockup: the name is sized to fit the measured width, so a wider measure shrinks it.
+        let lock = Config { header: "".into(), description: "".into(), tag: "".into(), features: "".into(), name: "A rather long product name".into(), ..Config::default() };
+        let size = |svg: &str| nums(&format!("<text {}", svg.split("<text ").find(|t| t.contains("A rather long")).unwrap()), "font-size")[0];
+        assert!(size(&base(&lock, &Metrics::measured(&wide))) < size(&base(&lock, &Metrics::ESTIMATE)));
+    }
+
+    #[test]
+    fn the_estimate_is_unchanged_and_not_marked_measured() {
+        assert!(!Metrics::ESTIMATE.is_measured());
+        let f = font_info("inter");
+        assert_eq!(Metrics::ESTIMATE.width("abcd", f, 400, 10.0), 4.0 * 10.0 * f.char_width);
     }
 }

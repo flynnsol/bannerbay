@@ -41,8 +41,21 @@ pub fn to_json(cfg: &Config) -> String {
 
 /// `None` for unreadable data or data from a newer version of the app.
 pub fn from_json(json: &str) -> Option<Config> {
-    let loaded: Loaded = serde_json::from_str(json).ok()?;
+    let mut value: serde_json::Value = serde_json::from_str(json).ok()?;
+    migrate(&mut value);
+    let loaded: Loaded = serde_json::from_value(value).ok()?;
     (loaded.v <= VERSION).then_some(loaded.config)
+}
+
+/// Saves written before heading and body fonts existed had one `font` ("mono" or "sans"); it
+/// becomes both new settings ("mono" is the bundled JetBrains Mono, its first choice).
+fn migrate(value: &mut serde_json::Value) {
+    let Some(cfg) = value.get_mut("config").and_then(|c| c.as_object_mut()) else { return };
+    if let Some(old) = cfg.remove("font") {
+        let key = if old == "sans" { "system-sans" } else { "jetbrains-mono" };
+        cfg.entry("heading_font").or_insert_with(|| key.into());
+        cfg.entry("body_font").or_insert_with(|| key.into());
+    }
 }
 
 /// The same settings without the uploaded logo (which can be megabytes).
@@ -175,5 +188,26 @@ mod tests {
     fn markup_in_text_survives_a_round_trip_unchanged() {
         let cfg = Config { header: "</text><script>\"x\"</script> *a* \\* ünï".into(), ..Config::default() };
         assert_eq!(from_json(&to_json(&cfg)).unwrap().header, cfg.header);
+    }
+
+    #[test]
+    fn old_single_font_setting_becomes_heading_and_body() {
+        let sans = from_json(r#"{"v":1,"config":{"font":"sans","name":"Old"}}"#).unwrap();
+        assert_eq!((sans.heading_font.as_str(), sans.body_font.as_str()), ("system-sans", "system-sans"));
+        assert_eq!(sans.name, "Old");
+        let mono = from_json(r#"{"v":1,"config":{"font":"mono"}}"#).unwrap();
+        assert_eq!((mono.heading_font.as_str(), mono.body_font.as_str()), ("jetbrains-mono", "jetbrains-mono"));
+        // New-style saves are not touched.
+        let new = from_json(r#"{"v":1,"config":{"heading_font":"system-sans","body_font":"system-mono"}}"#).unwrap();
+        assert_eq!((new.heading_font.as_str(), new.body_font.as_str()), ("system-sans", "system-mono"));
+    }
+
+    #[test]
+    fn font_choices_round_trip_and_unknown_fonts_fall_back() {
+        let cfg = Config { heading_font: "system-sans".into(), ..Config::default() };
+        assert_eq!(from_json(&to_json(&cfg)), Some(cfg));
+        let gone = Config { heading_font: "removed-font".into(), ..Config::default() };
+        let back = from_json(&to_json(&gone)).unwrap();
+        assert_eq!(back.heading().key, DEFAULT_FONT, "a font that no longer exists uses the default");
     }
 }

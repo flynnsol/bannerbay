@@ -2,7 +2,8 @@ use dioxus::prelude::*;
 
 use crate::export;
 use crate::model::*;
-use crate::render::{render, render_with_id};
+use crate::measure;
+use crate::render::{render_with_metrics, Metrics};
 use crate::storage::{self, Saved};
 use crate::themes::{Theme, THEMES};
 
@@ -59,6 +60,32 @@ fn check_field(label: &'static str, value: bool, mut on_input: impl FnMut(bool) 
         label { class: "field check",
             input { r#type: "checkbox", checked: value, onchange: move |e| on_input(e.checked()) }
             span { "{label}" }
+        }
+    }
+}
+
+/// A font picker: fonts grouped by category, each option drawn in its own typeface, and a sample
+/// line in the chosen one. Options are the `FONTS` keys, so saved choices survive the list changing.
+fn font_select(label: &'static str, current: String, mut on_change: impl FnMut(String) + 'static) -> Element {
+    let chosen = font_info(&current);
+    rsx! {
+        label { class: "field",
+            span { "{label}" }
+            select { onchange: move |e| on_change(e.value()),
+                for category in FontCategory::ALL {
+                    optgroup { label: category.label(),
+                        for font in FONTS.iter().filter(|f| f.category == category) {
+                            option {
+                                value: font.key,
+                                selected: font.key == current,
+                                style: "font-family: {font.stack}",
+                                "{font.name}"
+                            }
+                        }
+                    }
+                }
+            }
+            span { class: "font-sample", style: "font-family: {chosen.stack}", "Ship your launch banner" }
         }
     }
 }
@@ -125,6 +152,20 @@ pub fn App() -> Element {
     let mut cfg = use_signal(|| storage::load().unwrap_or_default());
     let mut save_state = use_signal(|| Saved::Full);
     let mut confirm_reset = use_signal(|| false);
+    // Bumped when the bundled fonts in use have finished loading, to re-measure and re-render.
+    let mut font_tick = use_signal(|| 0u32);
+    let font_keys = use_memo(move || (cfg.read().heading_font.clone(), cfg.read().body_font.clone()));
+    use_effect(move || {
+        let (heading, body) = font_keys();
+        if let Some(script) = measure::load_script(&heading, &body) {
+            spawn(async move {
+                let mut eval = document::eval(&script);
+                if eval.recv::<bool>().await.is_ok() {
+                    font_tick += 1;
+                }
+            });
+        }
+    });
     // Autosave whenever any setting changes.
     use_effect(move || {
         let c = cfg();
@@ -132,7 +173,12 @@ pub fn App() -> Element {
     });
     let mut png_scale = use_signal(|| 2u32);
     let c = cfg();
-    let rendered = render(&c);
+    // Real text widths, once the fonts in use have loaded. Until then (or off the web) the estimate
+    // is used, and a re-render follows as soon as `font_tick` changes.
+    let _ = font_tick();
+    let measure_text = |text: &str, font: &FontInfo, weight: u32, size: f64| measure::width(text, font, weight, size);
+    let metrics = if measure::available() { Metrics::measured(&measure_text) } else { Metrics::ESTIMATE };
+    let rendered = render_with_metrics(&c, "bb", &metrics);
     // Each theme's thumbnail is your own banner drawn in that theme. The uploaded logo is left
     // out so six copies of a large image never end up in the page.
     let theme_thumbs: Vec<(&'static Theme, String)> = {
@@ -145,11 +191,12 @@ pub fn App() -> Element {
                 let mut themed = base.clone();
                 theme.apply(&mut themed);
                 // A prefix per thumbnail: ids are page-global and must not clash with the preview.
-                (theme, render_with_id(&themed, &format!("th{i}")).svg)
+                (theme, render_with_metrics(&themed, &format!("th{i}"), &metrics).svg)
             })
             .collect()
     };
     let stem = c.file_stem();
+    let faces = export::faces_json(&c.heading_font, &c.body_font);
     let (w, h) = c.preset.size();
 
     rsx! {
@@ -195,7 +242,19 @@ pub fn App() -> Element {
                     }
                     {range_field("Corner radius", c.radius, 120, move |v| cfg.write().radius = v)}
                     {check_field("Accent glow", c.glow, move |v| cfg.write().glow = v)}
-                    {select_field("Font", c.font, move |v| cfg.write().font = v)}
+                    {font_select("Heading font", c.heading_font.clone(), move |v| cfg.write().heading_font = v)}
+                    {font_select("Body font", c.body_font.clone(), move |v| cfg.write().body_font = v)}
+                    if c.heading_font != DEFAULT_FONT || c.body_font != DEFAULT_FONT {
+                        button {
+                            class: "small reset-fonts",
+                            onclick: move |_| {
+                                let mut cfg = cfg.write();
+                                cfg.heading_font = DEFAULT_FONT.into();
+                                cfg.body_font = DEFAULT_FONT.into();
+                            },
+                            "Use default fonts"
+                        }
+                    }
                 }
 
                 section {
@@ -356,15 +415,15 @@ pub fn App() -> Element {
                         button {
                             class: "primary",
                             onclick: {
-                                let stem = stem.clone();
-                                move |_| export::save_png(&stem, png_scale())
+                                let (stem, faces) = (stem.clone(), faces.clone());
+                                move |_| export::save_png(&stem, png_scale(), &faces)
                             },
                             "Download PNG"
                         }
                         button {
                             onclick: {
-                                let stem = stem.clone();
-                                move |_| export::save_svg(&stem)
+                                let (stem, faces) = (stem.clone(), faces.clone());
+                                move |_| export::save_svg(&stem, &faces)
                             },
                             "Download SVG"
                         }

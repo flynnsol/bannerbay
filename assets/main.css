@@ -247,6 +247,10 @@ button.theme-card.active {
 .theme-name { padding: 0 4px 2px; color: var(--muted); }
 button.theme-card.active .theme-name { color: var(--accent); font-weight: 700; }
 
+/* Font pickers: the live sample under each one */
+.font-sample { margin: 2px 2px 0; font-size: 19px; line-height: 1.3; color: var(--text); }
+button.reset-fonts { width: 100%; height: auto; padding: 8px 14px; margin: 0 0 12px; }
+
 /* Small helper text under a field */
 .hint { margin: -6px 0 12px; color: var(--muted); font-size: 12px; }
 

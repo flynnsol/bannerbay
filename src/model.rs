@@ -61,26 +61,215 @@ keyed_enum!(Mark {
     None => ("none", "None"),
 });
 
-keyed_enum!(Font {
-    Mono => ("mono", "Monospace"),
-    Sans => ("sans", "Sans-serif"),
-});
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum FontCategory {
+    System,
+    Sans,
+    Serif,
+    Display,
+    Mono,
+}
 
-impl Font {
-    pub fn stack(self) -> &'static str {
+impl FontCategory {
+    /// The order the picker lists them in.
+    pub const ALL: [FontCategory; 5] = [
+        FontCategory::Mono,
+        FontCategory::Sans,
+        FontCategory::Serif,
+        FontCategory::Display,
+        FontCategory::System,
+    ];
+
+    pub fn label(self) -> &'static str {
         match self {
-            Font::Mono => "'JetBrains Mono', 'DejaVu Sans Mono', ui-monospace, Menlo, Consolas, monospace",
-            Font::Sans => "Inter, 'Helvetica Neue', Arial, sans-serif",
+            FontCategory::System => "System",
+            FontCategory::Sans => "Sans-serif",
+            FontCategory::Serif => "Serif",
+            FontCategory::Display => "Display",
+            FontCategory::Mono => "Monospace",
         }
     }
+}
 
-    /// Average glyph width as a fraction of the font size; used for wrapping and pill sizing.
-    pub fn char_width(self) -> f64 {
-        match self {
-            Font::Mono => 0.6,
-            Font::Sans => 0.56,
-        }
-    }
+/// One selectable font. Settings store the `key`, so the list can grow or change without
+/// breaking saved banners.
+#[derive(Debug)]
+pub struct FontInfo {
+    pub key: &'static str,
+    pub name: &'static str,
+    pub category: FontCategory,
+    /// The `@font-face` family for a bundled font; empty for system fonts.
+    pub family: &'static str,
+    /// The CSS `font-family` value, with fallbacks.
+    pub stack: &'static str,
+    /// Average glyph width as a fraction of the font size; used for wrapping and pill sizing
+    /// until text is measured for real.
+    pub char_width: f64,
+    /// The weight range the font really has. Text is kept inside it, because asking for a weight
+    /// outside it makes the browser fake a bold.
+    pub weights: (u16, u16),
+}
+
+/// Both the heading and body fonts start here. It is bundled, so every visitor sees the same font
+/// and exports can embed it.
+pub const DEFAULT_FONT: &str = "jetbrains-mono";
+
+/// Widths of bundled fonts were measured on a banner sentence and given a 5% margin (monospace
+/// fonts are exactly 0.6). Variable fonts list their real weight range.
+pub const FONTS: &[FontInfo] = &[
+    FontInfo {
+        key: "system-mono",
+        name: "System monospace",
+        category: FontCategory::System,
+        family: "",
+        stack: "ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace",
+        char_width: 0.6,
+        weights: (100, 900),
+    },
+    FontInfo {
+        key: "system-sans",
+        name: "System sans-serif",
+        category: FontCategory::System,
+        family: "",
+        stack: "system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+        char_width: 0.56,
+        weights: (100, 900),
+    },
+    FontInfo {
+        key: "inter",
+        name: "Inter",
+        category: FontCategory::Sans,
+        family: "Inter",
+        stack: "'Inter', system-ui, 'Helvetica Neue', Arial, sans-serif",
+        char_width: 0.515,
+        weights: (100, 900),
+    },
+    FontInfo {
+        key: "dm-sans",
+        name: "DM Sans",
+        category: FontCategory::Sans,
+        family: "DM Sans",
+        stack: "'DM Sans', system-ui, 'Helvetica Neue', Arial, sans-serif",
+        char_width: 0.5,
+        weights: (100, 900),
+    },
+    FontInfo {
+        key: "space-grotesk",
+        name: "Space Grotesk",
+        category: FontCategory::Sans,
+        family: "Space Grotesk",
+        stack: "'Space Grotesk', system-ui, 'Helvetica Neue', Arial, sans-serif",
+        char_width: 0.515,
+        weights: (300, 700),
+    },
+    FontInfo {
+        key: "manrope",
+        name: "Manrope",
+        category: FontCategory::Sans,
+        family: "Manrope",
+        stack: "'Manrope', system-ui, 'Helvetica Neue', Arial, sans-serif",
+        char_width: 0.475,
+        weights: (200, 800),
+    },
+    FontInfo {
+        key: "plus-jakarta-sans",
+        name: "Plus Jakarta Sans",
+        category: FontCategory::Sans,
+        family: "Plus Jakarta Sans",
+        stack: "'Plus Jakarta Sans', system-ui, 'Helvetica Neue', Arial, sans-serif",
+        char_width: 0.5,
+        weights: (200, 800),
+    },
+    FontInfo {
+        key: "playfair-display",
+        name: "Playfair Display",
+        category: FontCategory::Serif,
+        family: "Playfair Display",
+        stack: "'Playfair Display', Georgia, 'Times New Roman', serif",
+        char_width: 0.485,
+        weights: (400, 900),
+    },
+    FontInfo {
+        key: "fraunces",
+        name: "Fraunces",
+        category: FontCategory::Serif,
+        family: "Fraunces",
+        stack: "'Fraunces', Georgia, 'Times New Roman', serif",
+        char_width: 0.55,
+        weights: (100, 900),
+    },
+    FontInfo {
+        key: "dm-serif-display",
+        name: "DM Serif Display",
+        category: FontCategory::Display,
+        family: "DM Serif Display",
+        stack: "'DM Serif Display', Georgia, 'Times New Roman', serif",
+        char_width: 0.475,
+        weights: (400, 400),
+    },
+    FontInfo {
+        key: "bebas-neue",
+        name: "Bebas Neue",
+        category: FontCategory::Display,
+        family: "Bebas Neue",
+        stack: "'Bebas Neue', Impact, 'Arial Narrow', sans-serif",
+        char_width: 0.355,
+        weights: (400, 400),
+    },
+    FontInfo {
+        key: "archivo-black",
+        name: "Archivo Black",
+        category: FontCategory::Display,
+        family: "Archivo Black",
+        stack: "'Archivo Black', 'Arial Black', Impact, sans-serif",
+        char_width: 0.59,
+        weights: (400, 400),
+    },
+    FontInfo {
+        key: "jetbrains-mono",
+        name: "JetBrains Mono",
+        category: FontCategory::Mono,
+        family: "JetBrains Mono",
+        stack: "'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace",
+        char_width: 0.6,
+        weights: (100, 800),
+    },
+    FontInfo {
+        key: "fira-code",
+        name: "Fira Code",
+        category: FontCategory::Mono,
+        family: "Fira Code",
+        stack: "'Fira Code', ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace",
+        char_width: 0.6,
+        weights: (300, 700),
+    },
+    FontInfo {
+        key: "geist-mono",
+        name: "Geist Mono",
+        category: FontCategory::Mono,
+        family: "Geist Mono",
+        stack: "'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace",
+        char_width: 0.6,
+        weights: (100, 900),
+    },
+    FontInfo {
+        key: "red-hat-mono",
+        name: "Red Hat Mono",
+        category: FontCategory::Mono,
+        family: "Red Hat Mono",
+        stack: "'Red Hat Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace",
+        char_width: 0.6,
+        weights: (300, 700),
+    },
+];
+
+/// The font for `key`, or the default if it is unknown (for example a font removed later).
+pub fn font_info(key: &str) -> &'static FontInfo {
+    FONTS
+        .iter()
+        .find(|f| f.key == key)
+        .or_else(|| FONTS.iter().find(|f| f.key == DEFAULT_FONT))
+        .expect("the default font is in FONTS")
 }
 
 /// How a pill looks. Sizes are in design units at the 1200x630 base; the renderer scales them
@@ -223,7 +412,10 @@ pub struct Config {
     pub accent: String,
     /// Colour of `*emphasised*` header words; `None` follows the accent.
     pub highlight: Option<String>,
-    pub font: Font,
+    /// Font for the name and header (a `FONTS` key).
+    pub heading_font: String,
+    /// Font for everything else (a `FONTS` key).
+    pub body_font: String,
 
     pub mark: Mark,
     /// `data:` URL of an uploaded logo, used when `mark == Mark::Image`.
@@ -252,7 +444,8 @@ impl Default for Config {
             text: "#f4f1ea".into(),
             accent: "#d6a24b".into(),
             highlight: None,
-            font: Font::Mono,
+            heading_font: DEFAULT_FONT.into(),
+            body_font: DEFAULT_FONT.into(),
 
             mark: Mark::Sail,
             logo: None,
@@ -269,6 +462,14 @@ impl Default for Config {
 }
 
 impl Config {
+    pub fn heading(&self) -> &'static FontInfo {
+        font_info(&self.heading_font)
+    }
+
+    pub fn body(&self) -> &'static FontInfo {
+        font_info(&self.body_font)
+    }
+
     /// The colour for emphasised header words.
     pub fn highlight_color(&self) -> &str {
         self.highlight.as_deref().unwrap_or(&self.accent)
