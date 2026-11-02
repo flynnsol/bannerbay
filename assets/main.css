@@ -48,7 +48,8 @@ body {
   top: 0;
 }
 
-.brand h1 { margin: 0; font-size: 22px; color: var(--accent); }
+.brand h1 { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 22px; color: var(--accent); }
+.brand-mark { width: 30px; height: 30px; flex: none; }
 .brand p { margin: 4px 0 20px; color: var(--muted); }
 
 section { border-top: 1px solid var(--line); padding: 16px 0 6px; }

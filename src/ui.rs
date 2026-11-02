@@ -6,6 +6,8 @@ use crate::render::{render, render_with_id};
 use crate::storage::{self, Saved};
 use crate::themes::{Theme, THEMES};
 
+const BRAND_MARK: Asset = asset!("/assets/mark-dark-bg.svg");
+
 fn text_field(label: &'static str, value: String, mut on_input: impl FnMut(String) + 'static) -> Element {
     rsx! {
         label { class: "field",
@@ -154,7 +156,10 @@ pub fn App() -> Element {
         div { class: "app",
             aside { class: "panel",
                 header { class: "brand",
-                    h1 { "Bannerbay" }
+                    h1 {
+                        img { class: "brand-mark", src: BRAND_MARK, alt: "" }
+                        "Bannerbay"
+                    }
                     p { "Banners and social cards, made in your browser." }
                 }
 
