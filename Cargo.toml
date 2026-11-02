@@ -22,4 +22,5 @@ opt-level = "z"
 lto = true
 codegen-units = 1
 panic = "abort"
-strip = true
+# Not `strip = true`: newer Rust then strips the custom sections wasm-bindgen needs. Debug info only.
+strip = "debuginfo"
