@@ -1,7 +1,7 @@
 [application]
 
 [web.app]
-title = "Bannerbay: make banners and social cards"
+title = "Bannerbay - Make Banners for Your SaaS Launch"
 
 [web.watcher]
 watch_path = ["src", "assets"]

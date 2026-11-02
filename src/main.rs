@@ -22,7 +22,7 @@ fn main() {
 
 fn app() -> Element {
     rsx! {
-        document::Title { "Bannerbay: make banners and social cards" }
+        document::Title { "Bannerbay - Make Banners for Your SaaS Launch" }
         document::Link { rel: "icon", href: FAVICON_SVG, r#type: "image/svg+xml" }
         document::Link { rel: "alternate icon", href: FAVICON_ICO, sizes: "32x32" }
         document::Link { rel: "apple-touch-icon", href: APPLE_TOUCH_ICON }
