@@ -1,0 +1,351 @@
+/* ---- tokens: glass surfaces are defined here so a light theme can override them ---- */
+:root {
+  --bg: #0a0d14;
+  --text: #f4f1ea;
+  --muted: #9aa3b2;
+  --accent: #d6a24b;
+  --accent-soft: rgba(214, 162, 75, 0.22);
+  --panel: rgba(16, 20, 29, 0.55);
+  --glass: rgba(255, 255, 255, 0.05);
+  --glass-hover: rgba(255, 255, 255, 0.09);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-border-hover: rgba(255, 255, 255, 0.24);
+  --popover: rgba(21, 26, 36, 0.94);
+  --line: rgba(255, 255, 255, 0.08);
+  --shine: rgba(255, 255, 255, 0.06);
+  --radius: 12px;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  color: var(--text);
+  font: 14px/1.4 ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", Menlo, Consolas, monospace;
+  background:
+    radial-gradient(900px 600px at 85% -10%, rgba(214, 162, 75, 0.14), transparent 60%),
+    radial-gradient(700px 500px at -10% 110%, rgba(90, 120, 200, 0.12), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  min-height: 100vh;
+}
+
+.panel {
+  background: var(--panel);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+  border-right: 1px solid var(--line);
+  padding: 22px 18px 40px;
+  overflow-y: auto;
+  max-height: 100vh;
+  position: sticky;
+  top: 0;
+}
+
+.brand h1 { margin: 0; font-size: 22px; color: var(--accent); }
+.brand p { margin: 4px 0 20px; color: var(--muted); }
+
+section { border-top: 1px solid var(--line); padding: 16px 0 6px; }
+section h2 {
+  margin: 0 0 12px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.field > span { color: var(--muted); font-size: 12px; }
+.field.check { flex-direction: row; align-items: center; gap: 10px; }
+.field.check > span { color: var(--text); }
+
+.row { display: flex; gap: 10px; }
+.row .field { flex: 1; min-width: 0; }
+
+/* ---- glass controls ---- */
+input[type="text"], textarea, select {
+  width: 100%;
+  background: var(--glass);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font: inherit;
+  box-shadow: inset 0 1px 0 var(--shine);
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+/* background-color, not the shorthand: the shorthand would reset the select's arrow image. */
+input[type="text"]:hover, textarea:hover, select:hover {
+  background-color: var(--glass-hover);
+  border-color: var(--glass-border-hover);
+}
+textarea { resize: vertical; }
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 38px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%239aa3b2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+select option { background: #151a24; color: var(--text); }
+
+/* Themed dropdown list. Chrome and Edge can style the open list; other browsers keep the native one. */
+@supports (appearance: base-select) {
+  select, select::picker(select) { appearance: base-select; }
+  select {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-right: 14px;
+    background-image: none;
+  }
+  select::picker-icon {
+    content: "\25BE";
+    color: var(--muted);
+    transition: rotate 0.15s;
+  }
+  select:open::picker-icon { rotate: 180deg; }
+  select::picker(select) {
+    margin-top: 6px;
+    padding: 6px;
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    background: var(--popover);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    backdrop-filter: blur(20px) saturate(140%);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+  }
+  select option {
+    padding: 9px 12px;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: background-color 0.12s;
+  }
+  select option:hover, select option:focus-visible { background: var(--glass-hover); outline: none; }
+  select option:checked { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+  select option::checkmark { display: none; }
+}
+
+input[type="color"] {
+  width: 100%;
+  height: 40px;
+  padding: 4px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+input[type="color"]:hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
+input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+input[type="color"]::-webkit-color-swatch { border: none; border-radius: 8px; }
+input[type="color"]::-moz-color-swatch { border: none; border-radius: 8px; }
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 22px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: var(--glass-border); }
+input[type="range"]::-moz-range-track { height: 6px; border-radius: 999px; background: var(--glass-border); }
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px; margin-top: -6px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid var(--bg);
+  box-shadow: 0 0 0 1px var(--accent), 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid var(--bg);
+  box-shadow: 0 0 0 1px var(--accent), 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+input[type="range"]:focus { outline: none; }
+input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--accent-soft), 0 0 0 1px var(--accent); }
+
+input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; }
+
+input[type="file"] { color: var(--muted); font: inherit; font-size: 12px; }
+input[type="file"]::file-selector-button {
+  margin-right: 12px;
+  padding: 8px 14px;
+  background: var(--glass);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+input[type="file"]::file-selector-button:hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
+
+button {
+  background: var(--glass);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 9px 16px;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 var(--shine);
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+button:hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
+button:active { transform: translateY(1px); }
+button.primary {
+  background: linear-gradient(180deg, #e3b362, var(--accent));
+  border-color: transparent;
+  color: #14100a;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(214, 162, 75, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+button.primary:hover { filter: brightness(1.06); }
+
+button.reset.danger { color: #ff8a80; border-color: rgba(255, 138, 128, 0.5); background: rgba(255, 138, 128, 0.1); }
+
+/* Theme gallery: real thumbnails of your banner in each theme */
+.themes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+button.theme-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  text-align: left;
+  font-size: 12px;
+  border-radius: 14px;
+}
+button.theme-card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.theme-thumb { border-radius: 9px; overflow: hidden; line-height: 0; pointer-events: none; }
+.theme-thumb svg { display: block; width: 100%; height: auto; }
+.theme-name { padding: 0 4px 2px; color: var(--muted); }
+button.theme-card.active .theme-name { color: var(--accent); font-weight: 700; }
+
+/* Small helper text under a field */
+.hint { margin: -6px 0 12px; color: var(--muted); font-size: 12px; }
+
+/* Segmented control (PNG scale) */
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  background: var(--glass);
+}
+.segmented button.seg {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 6px 12px;
+  border-radius: 9px;
+  color: var(--muted);
+}
+.segmented button.seg:hover { color: var(--text); background: var(--glass-hover); }
+.segmented button.seg.on { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+
+/* Collapsed per-element style controls */
+.style-group {
+  margin: 2px 0 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  background: var(--glass);
+  box-shadow: inset 0 1px 0 var(--shine);
+}
+.style-group > summary {
+  cursor: pointer;
+  padding: 10px 14px;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  list-style: none;
+}
+.style-group > summary::-webkit-details-marker { display: none; }
+.style-group > summary::before { content: "\25B8"; display: inline-block; margin-right: 8px; transition: transform 0.15s; }
+.style-group[open] > summary::before { transform: rotate(90deg); }
+.style-group[open] > summary { color: var(--text); }
+.style-body { padding: 4px 14px 14px; }
+/* Highlight colour: picker with an inline "Use accent" button, bottom-aligned */
+.highlight-row { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 12px; }
+.highlight-row .field { flex: 1; min-width: 0; margin-bottom: 0; }
+button.small {
+  flex: none;
+  height: 40px;
+  padding: 0 14px;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--muted);
+}
+button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px; color: var(--muted); }
+
+.stage { padding: 20px 24px 40px; min-width: 0; }
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.dims { color: var(--muted); }
+.warn { color: #f0a35e; font-size: 12px; }
+.actions { margin-left: auto; display: flex; gap: 8px; }
+
+button {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #14100a; font-weight: 700; }
+
+/* Checkerboard shows through transparent rounded corners. */
+.checker {
+  border-radius: 18px;
+  border: 1px solid var(--glass-border);
+  padding: 18px;
+  background-color: #151a24;
+  background-image:
+    linear-gradient(45deg, #1b212d 25%, transparent 25%, transparent 75%, #1b212d 75%),
+    linear-gradient(45deg, #1b212d 25%, transparent 25%, transparent 75%, #1b212d 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
+}
+#preview svg { display: block; width: 100%; height: auto; max-height: 78vh; }
+
+@media (max-width: 860px) {
+  .app { grid-template-columns: 1fr; }
+  .panel { position: static; max-height: none; border-right: 0; border-bottom: 1px solid var(--line); }
+  .stage { padding: 16px; }
+  .actions { margin-left: 0; width: 100%; }
+}

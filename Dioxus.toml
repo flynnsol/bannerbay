@@ -1,0 +1,15 @@
+[application]
+
+[web.app]
+title = "Bannerbay: make banners and social cards"
+
+[web.watcher]
+watch_path = ["src", "assets"]
+
+[web.resource]
+style = []
+script = []
+
+[web.resource.dev]
+style = []
+script = []
