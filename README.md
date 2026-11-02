@@ -4,6 +4,8 @@
 
 Make README banners and social cards in seconds, right in your browser.
 
+**Try it: [bannerbay.org](https://bannerbay.org)**
+
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Rust](https://img.shields.io/badge/Rust-2024_edition-orange?logo=rust&logoColor=white)
 ![Dioxus](https://img.shields.io/badge/Dioxus-0.7-6C47FF)
