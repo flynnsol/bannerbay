@@ -50,9 +50,13 @@ jobs:
       - name: Build the site
         run: dx build --release --platform web
 
+      # Pages only exists once the repo is public and Pages is enabled; until then a run just
+      # tests and builds.
       - uses: actions/configure-pages@v5
+        if: ${{ github.event.repository.private == false }}
 
       - uses: actions/upload-pages-artifact@v3
+        if: ${{ github.event.repository.private == false }}
         with:
           path: target/dx/bannerbay/release/web/public
 
