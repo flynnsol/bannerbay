@@ -5,146 +5,15 @@ use crate::model::*;
 use crate::measure;
 use crate::render::{render_with_metrics, Metrics};
 use crate::storage::{self, Saved};
-use crate::themes::{Theme, THEMES};
+
+mod fields;
+mod theme_gallery;
+
+use fields::*;
+use theme_gallery::theme_gallery;
 
 const BRAND_MARK: Asset = asset!("/assets/mark-dark-bg.svg");
 
-fn text_field(label: &'static str, value: String, mut on_input: impl FnMut(String) + 'static) -> Element {
-    rsx! {
-        label { class: "field",
-            span { "{label}" }
-            input { r#type: "text", value: "{value}", oninput: move |e| on_input(e.value()) }
-        }
-    }
-}
-
-fn area_field(label: &'static str, value: String, rows: u32, mut on_input: impl FnMut(String) + 'static) -> Element {
-    rsx! {
-        label { class: "field",
-            span { "{label}" }
-            textarea { rows: "{rows}", value: "{value}", oninput: move |e| on_input(e.value()) }
-        }
-    }
-}
-
-fn color_field(label: &'static str, value: String, mut on_input: impl FnMut(String) + 'static) -> Element {
-    rsx! {
-        label { class: "field color",
-            span { "{label}" }
-            input { r#type: "color", value: "{value}", oninput: move |e| on_input(e.value()) }
-        }
-    }
-}
-
-fn range_field(label: &'static str, value: u32, max: u32, mut on_input: impl FnMut(u32) + 'static) -> Element {
-    rsx! {
-        label { class: "field",
-            span { "{label}: {value}" }
-            input {
-                r#type: "range",
-                min: "0",
-                max: "{max}",
-                value: "{value}",
-                oninput: move |e| {
-                    if let Ok(v) = e.value().parse() {
-                        on_input(v)
-                    }
-                },
-            }
-        }
-    }
-}
-
-fn check_field(label: &'static str, value: bool, mut on_input: impl FnMut(bool) + 'static) -> Element {
-    rsx! {
-        label { class: "field check",
-            input { r#type: "checkbox", checked: value, onchange: move |e| on_input(e.checked()) }
-            span { "{label}" }
-        }
-    }
-}
-
-/// A font picker: fonts grouped by category, each option drawn in its own typeface, and a sample
-/// line in the chosen one. Options are the `FONTS` keys, so saved choices survive the list changing.
-fn font_select(label: &'static str, current: String, mut on_change: impl FnMut(String) + 'static) -> Element {
-    let chosen = font_info(&current);
-    rsx! {
-        label { class: "field",
-            span { "{label}" }
-            select { onchange: move |e| on_change(e.value()),
-                for category in FontCategory::ALL {
-                    optgroup { label: category.label(),
-                        for font in FONTS.iter().filter(|f| f.category == category) {
-                            option {
-                                value: font.key,
-                                selected: font.key == current,
-                                style: "font-family: {font.stack}",
-                                "{font.name}"
-                            }
-                        }
-                    }
-                }
-            }
-            span { class: "font-sample", style: "font-family: {chosen.stack}", "Ship your launch banner" }
-        }
-    }
-}
-
-fn select_field<T: Keyed>(label: &'static str, current: T, mut on_change: impl FnMut(T) + 'static) -> Element {
-    rsx! {
-        label { class: "field",
-            span { "{label}" }
-            select {
-                onchange: move |e| {
-                    if let Some(v) = T::from_key(&e.value()) {
-                        on_change(v)
-                    }
-                },
-                for opt in T::ALL.iter().copied() {
-                    option { value: opt.key(), selected: opt == current, "{opt.label()}" }
-                }
-            }
-        }
-    }
-}
-
-fn slider(
-    label: &'static str,
-    value: f64,
-    (min, max, step): (f64, f64, f64),
-    mut on_input: impl FnMut(f64) + 'static,
-) -> Element {
-    rsx! {
-        label { class: "field",
-            span { "{label}: {value}" }
-            input {
-                r#type: "range",
-                min: "{min}",
-                max: "{max}",
-                step: "{step}",
-                value: "{value}",
-                oninput: move |e| {
-                    if let Ok(v) = e.value().parse() {
-                        on_input(v)
-                    }
-                },
-            }
-        }
-    }
-}
-
-/// A collapsed "Style" group (native `<details>`, so it needs no state) with a Reset button.
-fn style_group(children: Element, mut on_reset: impl FnMut() + 'static) -> Element {
-    rsx! {
-        details { class: "style-group",
-            summary { "Style" }
-            div { class: "style-body",
-                {children}
-                button { class: "reset", onclick: move |_| on_reset(), "Reset to default" }
-            }
-        }
-    }
-}
 
 #[component]
 pub fn App() -> Element {
@@ -179,22 +48,6 @@ pub fn App() -> Element {
     let measure_text = |text: &str, font: &FontInfo, weight: u32, size: f64| measure::width(text, font, weight, size);
     let metrics = if measure::available() { Metrics::measured(&measure_text) } else { Metrics::ESTIMATE };
     let rendered = render_with_metrics(&c, "bb", &metrics);
-    // Each theme's thumbnail is your own banner drawn in that theme. The uploaded logo is left
-    // out so six copies of a large image never end up in the page.
-    let theme_thumbs: Vec<(&'static Theme, String)> = {
-        let mut base = c.clone();
-        base.logo = None;
-        THEMES
-            .iter()
-            .enumerate()
-            .map(|(i, theme)| {
-                let mut themed = base.clone();
-                theme.apply(&mut themed);
-                // A prefix per thumbnail: ids are page-global and must not clash with the preview.
-                (theme, render_with_metrics(&themed, &format!("th{i}"), &metrics).svg)
-            })
-            .collect()
-    };
     let stem = c.file_stem();
     let faces = export::faces_json(&c.heading_font, &c.body_font);
     let (w, h) = c.preset.size();
@@ -212,21 +65,7 @@ pub fn App() -> Element {
 
                 section {
                     h2 { "Canvas" }
-                    div { class: "field",
-                        span { "Theme" }
-                        div { class: "themes",
-                            for (theme , thumb) in theme_thumbs {
-                                button {
-                                    class: if theme.is_active(&c) { "theme-card active" } else { "theme-card" },
-                                    title: "Apply the {theme.name} theme",
-                                    aria_pressed: theme.is_active(&c),
-                                    onclick: move |_| theme.apply(&mut cfg.write()),
-                                    div { class: "theme-thumb", dangerous_inner_html: "{thumb}" }
-                                    span { class: "theme-name", "{theme.name}" }
-                                }
-                            }
-                        }
-                    }
+                    {theme_gallery(&c, &metrics, cfg)}
                     {select_field("Size", c.preset, move |v| cfg.write().preset = v)}
                     {select_field("Background", c.bg_kind, move |v| cfg.write().bg_kind = v)}
                     div { class: "row",
