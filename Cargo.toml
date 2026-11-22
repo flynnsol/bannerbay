@@ -24,3 +24,6 @@ codegen-units = 1
 panic = "abort"
 # Not `strip = true`: newer Rust then strips the custom sections wasm-bindgen needs. Debug info only.
 strip = "debuginfo"
+
+[dev-dependencies]
+dioxus-ssr = "0.7"

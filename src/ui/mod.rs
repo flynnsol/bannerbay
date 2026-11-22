@@ -7,6 +7,7 @@ use crate::render::{render_with_metrics, Metrics};
 use crate::storage::{self, Saved};
 use crate::theme_pref;
 
+mod collapsible;
 mod fields;
 mod tabs;
 mod theme_gallery;
@@ -88,17 +89,19 @@ pub fn App() -> Element {
                         }
                         {range_field("Corner radius", c.radius, 120, move |v| cfg.write().radius = v)}
                         {check_field("Accent glow", c.glow, move |v| cfg.write().glow = v)}
-                        {font_select("Heading font", c.heading_font.clone(), move |v| cfg.write().heading_font = v)}
-                        {font_select("Body font", c.body_font.clone(), move |v| cfg.write().body_font = v)}
-                        if c.heading_font != DEFAULT_FONT || c.body_font != DEFAULT_FONT {
-                            button {
-                                class: "small reset-fonts",
-                                onclick: move |_| {
-                                    let mut cfg = cfg.write();
-                                    cfg.heading_font = DEFAULT_FONT.into();
-                                    cfg.body_font = DEFAULT_FONT.into();
-                                },
-                                "Use default fonts"
+                        collapsible::Collapsible { title: "Fonts", open: true,
+                            {font_select("Heading font", c.heading_font.clone(), move |v| cfg.write().heading_font = v)}
+                            {font_select("Body font", c.body_font.clone(), move |v| cfg.write().body_font = v)}
+                            if c.heading_font != DEFAULT_FONT || c.body_font != DEFAULT_FONT {
+                                button {
+                                    class: "small reset-fonts",
+                                    onclick: move |_| {
+                                        let mut cfg = cfg.write();
+                                        cfg.heading_font = DEFAULT_FONT.into();
+                                        cfg.body_font = DEFAULT_FONT.into();
+                                    },
+                                    "Use default fonts"
+                                }
                             }
                         }
                     }

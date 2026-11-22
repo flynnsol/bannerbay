@@ -3,6 +3,8 @@ use dioxus::prelude::*;
 
 use crate::model::*;
 
+use super::collapsible::Collapsible;
+
 pub fn text_field(label: &'static str, value: String, mut on_input: impl FnMut(String) + 'static) -> Element {
     rsx! {
         label { class: "field",
@@ -127,16 +129,11 @@ pub fn slider(
     }
 }
 
-/// A collapsed "Style" group (native `<details>`, so it needs no state) with a Reset button.
-pub fn style_group(children: Element, mut on_reset: impl FnMut() + 'static) -> Element {
+/// A collapsed "Style" group with a Reset button.
+pub fn style_group(children: Element, on_reset: impl FnMut() + 'static) -> Element {
+    let mut on_reset = on_reset;
     rsx! {
-        details { class: "style-group",
-            summary { "Style" }
-            div { class: "style-body",
-                {children}
-                button { class: "reset", onclick: move |_| on_reset(), "Reset to default" }
-            }
-        }
+        Collapsible { title: "Style", on_reset: move |_| on_reset(), {children} }
     }
 }
 
