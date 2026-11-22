@@ -6,6 +6,7 @@ mod measure;
 mod model;
 mod render;
 mod storage;
+mod theme_pref;
 mod themes;
 mod ui;
 

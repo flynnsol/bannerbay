@@ -5,15 +5,15 @@ use crate::model::*;
 use crate::measure;
 use crate::render::{render_with_metrics, Metrics};
 use crate::storage::{self, Saved};
+use crate::theme_pref;
 
 mod fields;
 mod theme_gallery;
+mod topbar;
 
 use fields::*;
 use theme_gallery::theme_gallery;
-
-const BRAND_MARK: Asset = asset!("/assets/mark-dark-bg.svg");
-
+use topbar::top_bar;
 
 #[component]
 pub fn App() -> Element {
@@ -40,7 +40,13 @@ pub fn App() -> Element {
         let c = cfg();
         save_state.set(storage::save(&c));
     });
-    let mut png_scale = use_signal(|| 2u32);
+    let png_scale = use_signal(|| 2u32);
+    // Applied before the first render, so the editor never flashes the wrong theme.
+    let theme = use_signal(|| {
+        let pref = theme_pref::load();
+        theme_pref::apply(pref);
+        pref
+    });
     let c = cfg();
     // Real text widths, once the fonts in use have loaded. Until then (or off the web) the estimate
     // is used, and a re-render follows as soon as `font_tick` changes.
@@ -54,15 +60,8 @@ pub fn App() -> Element {
 
     rsx! {
         div { class: "app",
+            {top_bar(stem, faces, png_scale, theme)}
             aside { class: "panel",
-                header { class: "brand",
-                    h1 {
-                        img { class: "brand-mark", src: BRAND_MARK, alt: "" }
-                        "Bannerbay"
-                    }
-                    p { "Banners and social cards, made in your browser." }
-                }
-
                 section {
                     h2 { "Canvas" }
                     {theme_gallery(&c, &metrics, cfg)}
@@ -239,33 +238,6 @@ pub fn App() -> Element {
                     }
                     if rendered.overflow {
                         span { class: "warn", "Content runs past the bottom, so shorten the text or pick a taller size." }
-                    }
-                    div { class: "actions",
-                        div { class: "segmented", role: "group", aria_label: "PNG scale",
-                            for scale in [1u32, 2] {
-                                button {
-                                    class: if png_scale() == scale { "seg on" } else { "seg" },
-                                    aria_pressed: png_scale() == scale,
-                                    onclick: move |_| png_scale.set(scale),
-                                    "{scale}×"
-                                }
-                            }
-                        }
-                        button {
-                            class: "primary",
-                            onclick: {
-                                let (stem, faces) = (stem.clone(), faces.clone());
-                                move |_| export::save_png(&stem, png_scale(), &faces)
-                            },
-                            "Download PNG"
-                        }
-                        button {
-                            onclick: {
-                                let (stem, faces) = (stem.clone(), faces.clone());
-                                move |_| export::save_svg(&stem, &faces)
-                            },
-                            "Download SVG"
-                        }
                     }
                 }
                 div { class: "checker",

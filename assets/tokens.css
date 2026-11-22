@@ -1,6 +1,7 @@
 /* Editor design tokens (Dioxus Atelier roles, Ember Night palette).
    Loaded before main.css. Components use var(--*) only; no raw colours outside this file.
-   Dark is the default; [data-theme="light"] switches to the light set. */
+   With no data-theme the editor follows the system; data-theme="light" or "dark" forces one.
+   The light values appear twice (forced, and system-light); keep the two blocks in step. */
 
 /* ---------- Colour: Ember Night ---------- */
 :root,
@@ -14,6 +15,7 @@
   --color-accent: #ffd400;
   --color-accent-hover: #d0ad0a;
   --color-accent-contrast: #0a0a0a;
+  --color-accent-text: var(--color-accent);
   --color-warn: #f0a35e;
   --color-danger: #ff8a80;
   --shadow-color: #000000;
@@ -29,10 +31,29 @@
   --color-accent: #f2c200;
   --color-accent-hover: #c39c00;
   --color-accent-contrast: #111111;
+  --color-accent-text: #7a5f00; /* yellow is too pale for text on light; 6:1 on --color-bg */
   --color-warn: #a4520f;
   --color-danger: #b3261e;
   --shadow-color: #3b3a30;
   color-scheme: light;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --color-bg: #fafaf7;
+    --color-surface: #ffffff;
+    --color-surface-alt: #f0efe8;
+    --color-text: #111111;
+    --color-text-muted: #6b6b63;
+    --color-border: #e2e1d8;
+    --color-accent: #f2c200;
+    --color-accent-hover: #c39c00;
+    --color-accent-contrast: #111111;
+    --color-accent-text: #7a5f00; /* yellow is too pale for text on light; 6:1 on --color-bg */
+    --color-warn: #a4520f;
+    --color-danger: #b3261e;
+    --shadow-color: #3b3a30;
+    color-scheme: light;
+  }
 }
 
 /* ---------- Derived surfaces: glass, lines and shadows follow the palette ---------- */
