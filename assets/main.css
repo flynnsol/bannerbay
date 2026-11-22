@@ -336,6 +336,9 @@ button.reset-fonts { width: 100%; height: auto; padding: 8px 14px; margin: 0 0 1
 }
 .segmented button.seg:hover { color: var(--color-text); background: var(--glass-hover); }
 .segmented button.seg.on { background: var(--color-accent-soft); color: var(--color-accent-text); font-weight: 700; }
+/* Full-width segmented field in the panel: equal segments, 40px tall (44px on touch, see phone rules). */
+.segmented.wide { display: flex; width: 100%; }
+.segmented.wide button.seg { flex: 1 1 0; min-width: 0; min-height: 34px; padding: 6px 8px; font-size: var(--text-small); }
 
 /* Collapsed per-element style controls */
 .style-group {

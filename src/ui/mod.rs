@@ -73,8 +73,8 @@ pub fn App() -> Element {
                 }
                 if tab() == PanelTab::Canvas {
                     section { id: "panel-canvas", role: "tabpanel", aria_labelledby: "tab-canvas",
-                        {select_field("Size", c.preset, move |v| cfg.write().preset = v)}
-                        {select_field("Background", c.bg_kind, move |v| cfg.write().bg_kind = v)}
+                        {segmented("Size", c.preset, move |v| cfg.write().preset = v)}
+                        {segmented("Background", c.bg_kind, move |v| cfg.write().bg_kind = v)}
                         div { class: "row",
                             {color_field("Base", c.bg1.clone(), move |v| cfg.write().bg1 = v)}
                             if c.bg_kind == BgKind::Gradient {
@@ -202,7 +202,7 @@ pub fn App() -> Element {
                 if tab() == PanelTab::Features {
                     section { id: "panel-features", role: "tabpanel", aria_labelledby: "tab-features",
                         {area_field("One per line", c.features.clone(), 4, move |v| cfg.write().features = v)}
-                        {select_field("Layout", c.layout, move |v| cfg.write().layout = v)}
+                        {segmented("Layout", c.layout, move |v| cfg.write().layout = v)}
                         {style_group(
                             rsx! {
                                 {slider("Corner radius", c.style.pill.radius, (0.0, 40.0, 1.0), move |v| cfg.write().style.pill.radius = v)}

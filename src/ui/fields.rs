@@ -139,3 +139,85 @@ pub fn style_group(children: Element, mut on_reset: impl FnMut() + 'static) -> E
         }
     }
 }
+
+/// An option set short enough for a segmented control: 2 to 4 options with one-word labels.
+pub trait Segmented: Keyed {
+    /// The label on the segment; the full `label()` becomes its tooltip.
+    fn short(self) -> &'static str;
+}
+
+impl Segmented for Preset {
+    fn short(self) -> &'static str {
+        match self {
+            Preset::Banner => "Banner",
+            Preset::Social => "Social",
+            Preset::Square => "Square",
+            Preset::Wide => "Wide",
+        }
+    }
+}
+
+impl Segmented for BgKind {
+    fn short(self) -> &'static str {
+        match self {
+            BgKind::Solid => "Solid",
+            BgKind::Gradient => "Gradient",
+            BgKind::Grid => "Grid",
+            BgKind::Dots => "Dots",
+        }
+    }
+}
+
+impl Segmented for FeatureLayout {
+    fn short(self) -> &'static str {
+        match self {
+            FeatureLayout::Horizontal => "Row",
+            FeatureLayout::Vertical => "Column",
+        }
+    }
+}
+
+/// A labelled row of buttons for a small option set; the chosen one is pressed.
+pub fn segmented<T: Segmented>(label: &'static str, current: T, on_change: impl FnMut(T) + 'static) -> Element {
+    // A Callback is Copy, so every segment's click handler can share it.
+    let on_change = Callback::new(on_change);
+    rsx! {
+        div { class: "field",
+            span { "{label}" }
+            div { class: "segmented wide", role: "group", aria_label: label,
+                for opt in T::ALL.iter().copied() {
+                    button {
+                        class: if opt == current { "seg on" } else { "seg" },
+                        title: opt.label(),
+                        aria_pressed: opt == current,
+                        onclick: move |_| on_change.call(opt),
+                        "{opt.short()}"
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fits<T: Segmented>() {
+        assert!((2..=4).contains(&T::ALL.len()), "{} options", T::ALL.len());
+        let mut seen = Vec::new();
+        for &opt in T::ALL {
+            let short = opt.short();
+            assert!(!short.is_empty() && short.chars().count() <= 10, "{short:?} is too long");
+            assert!(!seen.contains(&short), "{short:?} repeats");
+            seen.push(short);
+        }
+    }
+
+    #[test]
+    fn segmented_option_sets_are_small_with_short_distinct_labels() {
+        fits::<Preset>();
+        fits::<BgKind>();
+        fits::<FeatureLayout>();
+    }
+}

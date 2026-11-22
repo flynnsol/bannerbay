@@ -107,6 +107,10 @@ pub fn tab_list(tab: Signal<PanelTab>) -> Element {
                     tabindex: if t == current { "0" } else { "-1" },
                     onclick: move |_| select(tab, t),
                     onkeydown: move |e: KeyboardEvent| {
+                        // Leave modified keys alone: Alt+Arrow is browser back and forward.
+                        if !e.modifiers().is_empty() {
+                            return;
+                        }
                         if let Some(next) = t.after_key(&e.key().to_string()) {
                             e.prevent_default();
                             select(tab, next);
