@@ -56,7 +56,7 @@ button.icon svg { width: 18px; height: 18px; }
   -webkit-backdrop-filter: var(--blur-glass);
   backdrop-filter: var(--blur-glass);
   border-right: 1px solid var(--line);
-  padding: 6px 18px 40px;
+  padding: 0 18px 40px;
   overflow-y: auto;
   max-height: calc(100vh - var(--topbar-h));
   max-height: calc(100dvh - var(--topbar-h));
@@ -65,6 +65,52 @@ button.icon svg { width: 18px; height: 18px; }
 }
 
 
+/* ---- panel tabs ---- */
+.tabs {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  gap: 2px;
+  margin: 0 -18px;
+  padding: var(--space-3) 18px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: var(--color-panel);
+  -webkit-backdrop-filter: var(--blur-glass);
+  backdrop-filter: var(--blur-glass);
+  border-bottom: 1px solid var(--line);
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tabs button.tab {
+  flex: 1 0 auto;
+  min-height: 40px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  box-shadow: none;
+  color: var(--color-text-muted);
+  font-size: var(--text-small);
+}
+.tabs button.tab:hover { color: var(--color-text); background: var(--glass-hover); }
+.tabs button.tab.on {
+  background: var(--color-accent-soft);
+  border-color: var(--color-accent-soft);
+  color: var(--color-accent-text);
+  font-weight: 700;
+}
+
+/* A panel fades up when its tab opens (instant under reduced motion, via tokens.css). */
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+section[role="tabpanel"] {
+  border-top: 0;
+  padding: var(--space-4) 0 6px;
+  animation: panel-in var(--dur-base) var(--ease-out);
+}
 section { border-top: 1px solid var(--line); padding: 16px 0 6px; }
 section h2 {
   margin: 0 0 12px;
