@@ -84,6 +84,8 @@
   --text-ui: 14px;
   --text-small: 12px;
   --text-label: 11px;
+  --text-input-touch: 16px; /* under 16px, iOS zooms the page when a field gets focus */
+  --target-touch: 44px;
 
   --radius-control: 12px;
   --radius-card: 14px;

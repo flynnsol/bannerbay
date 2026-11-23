@@ -1,4 +1,4 @@
-//! The top bar: brand on the left; PNG scale, downloads and the theme toggle on the right.
+//! The top bar: brand, the export actions (a sticky bottom bar on phones) and the theme toggle.
 use dioxus::prelude::*;
 
 use crate::export;
@@ -60,23 +60,27 @@ pub fn top_bar(stem: String, faces: String, mut png_scale: Signal<u32>, mut them
                         let (stem, faces) = (stem.clone(), faces.clone());
                         move |_| export::save_png(&stem, png_scale(), &faces)
                     },
-                    "Download PNG"
+                    aria_label: "Download PNG",
+                    span { class: "wide-only", "Download " }
+                    "PNG"
                 }
                 button {
                     onclick: move |_| export::save_svg(&stem, &faces),
-                    "Download SVG"
+                    aria_label: "Download SVG",
+                    span { class: "wide-only", "Download " }
+                    "SVG"
                 }
-                button {
-                    class: "icon theme-toggle",
-                    title: "{pref.label()} (click to change)",
-                    aria_label: "{pref.label()}. Click to change.",
-                    onclick: move |_| {
-                        let next = theme().next();
-                        theme_pref::apply(next);
-                        theme.set(next);
-                    },
-                    {theme_icon(pref)}
-                }
+            }
+            button {
+                class: "icon theme-toggle",
+                title: "{pref.label()} (click to change)",
+                aria_label: "{pref.label()}. Click to change.",
+                onclick: move |_| {
+                    let next = theme().next();
+                    theme_pref::apply(next);
+                    theme.set(next);
+                },
+                {theme_icon(pref)}
             }
         }
     }
