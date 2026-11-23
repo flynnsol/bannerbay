@@ -203,20 +203,38 @@ select option { background: var(--color-surface); color: var(--color-text); }
   select option::checkmark { display: none; }
 }
 
-input[type="color"] {
-  width: 100%;
-  height: 40px;
-  padding: 4px;
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-control);
+/* Swatch palette: preset colours plus a rainbow Custom swatch that opens the native picker. */
+.swatches { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.swatch {
+  display: inline-block;
+  flex: none;
+  position: relative;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--glass-border-hover);
+  border-radius: var(--radius-pill);
+  background: var(--swatch);
+  box-shadow: none;
   cursor: pointer;
-  transition: border-color var(--dur-fast), background var(--dur-fast);
+  transition: transform var(--dur-fast) var(--ease-pop), box-shadow var(--dur-fast) var(--ease-out);
 }
-input[type="color"]:hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
-input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
-input[type="color"]::-webkit-color-swatch { border: none; border-radius: 8px; }
-input[type="color"]::-moz-color-swatch { border: none; border-radius: 8px; }
+button.swatch:hover { background: var(--swatch); border-color: var(--glass-border-hover); }
+.swatch.on { box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent-text); }
+.swatch.custom { background: var(--swatch-rainbow); }
+.swatch.custom.on { background: var(--swatch); }
+.swatch.custom input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.swatch:has(input:focus-visible) { outline: 2px solid var(--color-accent-text); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .swatch:hover { transform: scale(1.12); }
+}
 
 input[type="range"] {
   -webkit-appearance: none;
@@ -391,8 +409,8 @@ button.reset-fonts { width: 100%; height: auto; padding: 8px 14px; margin: 0 0 1
   .collapsible-body, .chevron { transition: none; }
 }
 /* Highlight colour: picker with an inline "Use accent" button, bottom-aligned */
-.highlight-row { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 12px; }
-.highlight-row .field { flex: 1; min-width: 0; margin-bottom: 0; }
+.highlight-row { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); margin-bottom: 12px; }
+.highlight-row .field { width: 100%; min-width: 0; margin-bottom: 0; }
 button.small {
   flex: none;
   height: 40px;

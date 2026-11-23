@@ -23,15 +23,6 @@ pub fn area_field(label: &'static str, value: String, rows: u32, mut on_input: i
     }
 }
 
-pub fn color_field(label: &'static str, value: String, mut on_input: impl FnMut(String) + 'static) -> Element {
-    rsx! {
-        label { class: "field color",
-            span { "{label}" }
-            input { r#type: "color", value: "{value}", oninput: move |e| on_input(e.value()) }
-        }
-    }
-}
-
 pub fn range_field(label: &'static str, value: u32, max: u32, mut on_input: impl FnMut(u32) + 'static) -> Element {
     rsx! {
         label { class: "field",

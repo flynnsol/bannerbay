@@ -9,12 +9,14 @@ use crate::theme_pref;
 
 mod collapsible;
 mod fields;
+mod swatches;
 mod tabs;
 mod theme_gallery;
 mod topbar;
 
 use fields::*;
 use tabs::{tab_list, PanelTab};
+use swatches::{swatch_field, ACCENTS, BACKGROUNDS, TEXTS};
 use theme_gallery::theme_gallery;
 use topbar::top_bar;
 
@@ -76,14 +78,12 @@ pub fn App() -> Element {
                     section { id: "panel-canvas", role: "tabpanel", aria_labelledby: "tab-canvas",
                         {segmented("Size", c.preset, move |v| cfg.write().preset = v)}
                         {segmented("Background", c.bg_kind, move |v| cfg.write().bg_kind = v)}
-                        div { class: "row",
-                            {color_field("Base", c.bg1.clone(), move |v| cfg.write().bg1 = v)}
-                            if c.bg_kind == BgKind::Gradient {
-                                {color_field("To", c.bg2.clone(), move |v| cfg.write().bg2 = v)}
-                            }
-                            {color_field("Text", c.text.clone(), move |v| cfg.write().text = v)}
-                            {color_field("Accent", c.accent.clone(), move |v| cfg.write().accent = v)}
+                        {swatch_field("Base", c.bg1.clone(), BACKGROUNDS, move |v| cfg.write().bg1 = v)}
+                        if c.bg_kind == BgKind::Gradient {
+                            {swatch_field("To", c.bg2.clone(), BACKGROUNDS, move |v| cfg.write().bg2 = v)}
                         }
+                        {swatch_field("Text", c.text.clone(), TEXTS, move |v| cfg.write().text = v)}
+                        {swatch_field("Accent", c.accent.clone(), ACCENTS, move |v| cfg.write().accent = v)}
                         if c.bg_kind == BgKind::Gradient {
                             {range_field("Angle", c.angle, 360, move |v| cfg.write().angle = v)}
                         }
@@ -158,7 +158,7 @@ pub fn App() -> Element {
                         {style_group(
                             rsx! {
                                 div { class: "highlight-row",
-                                    {color_field("Highlight colour", c.highlight_color().to_string(), move |v| cfg.write().highlight = Some(v))}
+                                    {swatch_field("Highlight colour", c.highlight_color().to_string(), ACCENTS, move |v| cfg.write().highlight = Some(v))}
                                     if c.highlight.is_some() {
                                         button { class: "small", onclick: move |_| cfg.write().highlight = None, "Use accent" }
                                     }
