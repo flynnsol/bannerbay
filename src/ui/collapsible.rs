@@ -28,7 +28,8 @@ pub fn Collapsible(
                 span { class: "chevron", "aria-hidden": "true" }
                 "{title}"
             }
-            div { class: "collapsible-body", id: "{id}", inert: !expanded,
+            // Only present while closed: Dioxus would write `inert="false"`, which is still inert.
+            div { class: "collapsible-body", id: "{id}", inert: (!expanded).then_some("true"),
                 div { class: "collapsible-inner",
                     {children}
                     if let Some(on_reset) = on_reset {
@@ -59,6 +60,14 @@ mod tests {
         assert!(html.contains(r#"aria-expanded="false""#), "{html}");
         assert!(html.contains("inert"), "{html}");
         assert!(html.contains("inside"), "the body stays in the page so it can animate: {html}");
+    }
+
+    /// Dioxus 0.7 does not treat `inert` as a boolean attribute in the browser, so `inert: false`
+    /// becomes `inert="false"`, which still makes the section inert. The attribute must only be
+    /// added, as a string, while the section is closed.
+    #[test]
+    fn inert_is_set_as_a_string_only_while_closed() {
+        assert!(render(false).contains(r#"inert="true""#), "{}", render(false));
     }
 
     #[test]
