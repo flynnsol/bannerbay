@@ -89,7 +89,6 @@ button.icon svg { width: 18px; height: 18px; }
   color: var(--color-text-muted);
   font-size: var(--text-small);
 }
-.tabs button.tab:hover { color: var(--color-text); background: var(--glass-hover); }
 .tabs button.tab.on {
   background: var(--color-accent-soft);
   border-color: var(--color-accent-soft);
@@ -136,11 +135,6 @@ input[type="text"], textarea, select {
   font-size: var(--text-input-touch); /* after the shorthand, which would reset it */
   box-shadow: inset 0 1px 0 var(--shine);
   transition: border-color var(--dur-fast), background var(--dur-fast), box-shadow var(--dur-fast);
-}
-/* background-color, not the shorthand: the shorthand would reset the select's arrow image. */
-input[type="text"]:hover, textarea:hover, select:hover {
-  background-color: var(--glass-hover);
-  border-color: var(--glass-border-hover);
 }
 textarea { resize: vertical; }
 input:focus, textarea:focus, select:focus {
@@ -195,7 +189,7 @@ select option { background: var(--color-surface); color: var(--color-text); }
     cursor: pointer;
     transition: background-color var(--dur-fast);
   }
-  select option:hover, select option:focus-visible { background: var(--glass-hover); outline: none; }
+  select option:focus-visible { background: var(--glass-hover); outline: none; }
   select option:checked { background: var(--color-accent-soft); color: var(--color-accent-text); font-weight: 700; }
   select option::checkmark { display: none; }
 }
@@ -216,7 +210,6 @@ select option { background: var(--color-surface); color: var(--color-text); }
   cursor: pointer;
   transition: transform var(--dur-fast) var(--ease-pop), box-shadow var(--dur-fast) var(--ease-out);
 }
-button.swatch:hover { background: var(--swatch); border-color: var(--glass-border-hover); }
 .swatch.on { box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent-text); }
 .swatch.custom { background: var(--swatch-rainbow); }
 .swatch.custom.on { background: var(--swatch); }
@@ -276,7 +269,6 @@ input[type="file"]::file-selector-button {
   cursor: pointer;
   transition: background var(--dur-fast), border-color var(--dur-fast);
 }
-input[type="file"]::file-selector-button:hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
 
 button {
   min-height: var(--target-touch); /* phones; relaxed from 48rem */
@@ -290,7 +282,6 @@ button {
   box-shadow: inset 0 1px 0 var(--shine);
   transition: background var(--dur-fast), border-color var(--dur-fast), transform var(--dur-fast);
 }
-button:hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
 button:active { transform: translateY(1px); }
 button.primary {
   background: var(--color-accent);
@@ -299,7 +290,6 @@ button.primary {
   font-weight: 700;
   box-shadow: var(--shadow-primary), var(--shine-primary);
 }
-button.primary:hover { background: var(--color-accent-hover); border-color: transparent; }
 
 button.reset.danger {
   color: var(--color-danger);
@@ -351,7 +341,6 @@ button.reset-fonts { width: 100%; height: auto; padding: 8px 14px; margin: 0 0 1
   border-radius: var(--radius-inner);
   color: var(--color-text-muted);
 }
-.segmented button.seg:hover { color: var(--color-text); background: var(--glass-hover); }
 .segmented button.seg.on { background: var(--color-accent-soft); color: var(--color-accent-text); font-weight: 700; }
 /* Full-width segmented field in the panel: equal segments, touch height on phones, 34px from 48rem. */
 .segmented.wide { display: flex; width: 100%; }
@@ -382,7 +371,6 @@ button.reset-fonts { width: 100%; height: auto; padding: 8px 14px; margin: 0 0 1
   text-transform: uppercase;
   text-align: left;
 }
-.collapsible > button.collapsible-head:hover { background: var(--glass-hover); color: var(--color-text); }
 .collapsible.open > button.collapsible-head { color: var(--color-text); }
 .chevron {
   width: 7px;
@@ -542,4 +530,61 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
   input[type="range"] { height: 22px; }
   .field.check { min-height: 0; }
   input[type="file"]::file-selector-button { min-height: 0; }
+}
+
+/* ---- hover (Atelier hover map): only on devices that hover, so a tap never sticks ---- */
+@media (hover: hover) and (pointer: fine) {
+  .tabs button.tab:not(.on):hover { color: var(--color-text); background: var(--glass-hover); }
+
+  /* background-color, not the shorthand: the shorthand would reset the select's arrow image. */
+  input[type="text"]:hover:not(:focus), textarea:hover:not(:focus), select:hover:not(:focus) {
+    background-color: var(--glass-hover);
+    border-color: var(--glass-border-hover);
+  }
+
+  button.swatch:hover { background: var(--swatch); border-color: var(--glass-border-hover); }
+
+  input[type="file"]::file-selector-button:hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
+
+  button:hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
+
+  button.primary:hover { background: var(--color-accent-hover); border-color: transparent; }
+
+  .segmented button.seg:not(.on):hover { color: var(--color-text); background: var(--glass-hover); }
+
+  .collapsible > button.collapsible-head:hover { background: var(--glass-hover); color: var(--color-text); }
+
+  button.theme-card:hover { border-color: var(--color-accent-text); box-shadow: 0 0 0 3px var(--color-accent-soft); }
+  select option:not(:checked):hover { background: var(--glass-hover); }
+}
+
+/* Primary action: a shine sweeps across (30). Also on keyboard focus. */
+button.primary { position: relative; overflow: hidden; isolation: isolate; }
+button.primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--color-surface) 55%, transparent) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: none; /* one-way: sweep in on hover or focus, snap back when it ends */
+}
+button.theme-card {
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
+}
+.theme-toggle svg { transition: transform var(--dur-base) var(--ease-pop); }
+
+/* Movement: hover-capable devices with reduced motion off. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  button.primary:hover::after { transform: translateX(120%); transition: transform var(--dur-slow) var(--ease-out); }
+  button.theme-card:hover { transform: translateY(-3px); }
+  button.theme-card:hover:active { transform: translateY(1px); }
+  .theme-toggle:hover svg { transform: rotate(-20deg) scale(1.12); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  button.primary:focus-visible::after { transform: translateX(120%); transition: transform var(--dur-slow) var(--ease-out); }
 }
