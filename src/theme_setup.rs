@@ -96,6 +96,8 @@ mod tests {
     #[test]
     fn main_css_classes_do_not_clash_with_atelier_ui() {
         const PENDING: [&str; 6] = ["tab", "tabs", "field", "open", "active", "theme-toggle"];
+        // Named only to keep main.css's generic button rules off the library's controls.
+        const EXCLUDED: [&str; 2] = ["btn", "input"];
         let library = atelier_ui::styles::COMPONENTS_SRC;
         let ours = include_str!("../assets/main.css");
         let names = |css: &str| -> std::collections::BTreeSet<String> {
@@ -112,7 +114,7 @@ mod tests {
         let library = names(library);
         let clashes: Vec<_> = names(ours)
             .into_iter()
-            .filter(|n| library.contains(n) && !PENDING.contains(&n.as_str()))
+            .filter(|n| library.contains(n) && !PENDING.contains(&n.as_str()) && !EXCLUDED.contains(&n.as_str()))
             .collect();
         assert!(clashes.is_empty(), "main.css classes also styled by atelier-ui: {clashes:?}");
     }

@@ -1,4 +1,5 @@
 //! Form controls shared by every panel: labelled inputs, sliders, selects and the Style group.
+use atelier_ui::elements::{Select, SelectOption};
 use dioxus::prelude::*;
 
 use crate::model::*;
@@ -51,45 +52,68 @@ pub fn check_field(label: &'static str, value: bool, mut on_input: impl FnMut(bo
     }
 }
 
-/// A font picker: fonts grouped by category, each option drawn in its own typeface, and a sample
-/// line in the chosen one. Options are the `FONTS` keys, so saved choices survive the list changing.
-pub fn font_select(label: &'static str, current: String, mut on_change: impl FnMut(String) + 'static) -> Element {
+/// The font picker's options: every `FONTS` key, in picker category order, each described by its
+/// category (the list has no groups). Values are the keys, so saved choices survive the list changing.
+pub fn font_options() -> Vec<SelectOption> {
+    FontCategory::ALL
+        .iter()
+        .flat_map(|&category| FONTS.iter().filter(move |f| f.category == category))
+        .map(|f| SelectOption::new(f.key, f.name).describe(f.category.label()))
+        .collect()
+}
+
+/// The options for a keyed choice, in `ALL` order.
+pub fn keyed_options<T: Keyed>() -> Vec<SelectOption> {
+    T::ALL.iter().map(|o| SelectOption::new(o.key(), o.label())).collect()
+}
+
+/// The element id for a labelled control: "Heading font" becomes "field-heading-font".
+fn field_id(label: &str) -> String {
+    let slug: String = label.chars().map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_lowercase() } else { '-' }).collect();
+    format!("field-{slug}")
+}
+
+/// A font picker (atelier-ui `Select`): each option shows "Aa" in its own typeface, and a sample
+/// line below shows the chosen one.
+pub fn font_select(label: &'static str, current: String, on_change: impl FnMut(String) + 'static) -> Element {
     let chosen = font_info(&current);
+    let options = font_options();
+    let stacks: Vec<&'static str> = options.iter().map(|o| font_info(&o.value).stack).collect();
+    let id = field_id(label);
     rsx! {
-        label { class: "field",
-            span { "{label}" }
-            select { onchange: move |e| on_change(e.value()),
-                for category in FontCategory::ALL {
-                    optgroup { label: category.label(),
-                        for font in FONTS.iter().filter(|f| f.category == category) {
-                            option {
-                                value: font.key,
-                                selected: font.key == current,
-                                style: "font-family: {font.stack}",
-                                "{font.name}"
-                            }
-                        }
-                    }
-                }
+        div { class: "field",
+            label { r#for: "{id}", "{label}" }
+            Select {
+                id: id.clone(),
+                options,
+                value: current.clone(),
+                leading: rsx! { span { class: "font-aa", style: "font-family: {chosen.stack}", "Aa" } },
+                option_leading: Callback::new(move |i: usize| {
+                    let stack = stacks.get(i).copied().unwrap_or_default();
+                    rsx! { span { class: "font-aa", style: "font-family: {stack}", "Aa" } }
+                }),
+                oninput: on_change,
             }
             span { class: "font-sample", style: "font-family: {chosen.stack}", "Ship your launch banner" }
         }
     }
 }
 
+/// A drop-down (atelier-ui `Select`) for a keyed choice; unknown values are ignored.
 pub fn select_field<T: Keyed>(label: &'static str, current: T, mut on_change: impl FnMut(T) + 'static) -> Element {
+    let id = field_id(label);
     rsx! {
-        label { class: "field",
-            span { "{label}" }
-            select {
-                onchange: move |e| {
-                    if let Some(v) = T::from_key(&e.value()) {
+        div { class: "field",
+            label { r#for: "{id}", "{label}" }
+            Select {
+                id: id.clone(),
+                options: keyed_options::<T>(),
+                value: current.key().to_string(),
+                oninput: move |v: String| {
+                    if let Some(v) = T::from_key(&v) {
                         on_change(v)
                     }
                 },
-                for opt in T::ALL.iter().copied() {
-                    option { value: opt.key(), selected: opt == current, "{opt.label()}" }
-                }
             }
         }
     }
@@ -199,6 +223,51 @@ mod tests {
             assert!(!short.is_empty() && short.chars().count() <= 10, "{short:?} is too long");
             assert!(!seen.contains(&short), "{short:?} repeats");
             seen.push(short);
+        }
+    }
+
+    #[test]
+    fn font_options_list_every_font_by_category_with_keys_as_values() {
+        let options = font_options();
+        assert_eq!(options.len(), FONTS.len());
+        let order = |key: &str| FontCategory::ALL.iter().position(|&c| c == font_info(key).category).unwrap();
+        assert!(options.windows(2).all(|w| order(&w[0].value) <= order(&w[1].value)), "grouped by category");
+        for o in &options {
+            let font = font_info(&o.value);
+            assert_eq!(font.key, o.value);
+            assert_eq!(o.label, font.name);
+            assert_eq!(o.description.as_deref(), Some(font.category.label()));
+        }
+    }
+
+    #[test]
+    fn keyed_options_follow_all() {
+        let options = keyed_options::<Mark>();
+        assert_eq!(options.len(), Mark::ALL.len());
+        for (o, m) in options.iter().zip(Mark::ALL) {
+            assert_eq!((o.value.as_str(), o.label.as_str()), (m.key(), m.label()));
+        }
+    }
+
+    fn render(app: fn() -> Element) -> String {
+        let mut dom = VirtualDom::new(app);
+        dom.rebuild_in_place();
+        dioxus_ssr::render(&dom)
+    }
+
+    #[test]
+    fn dropdowns_are_atelier_selects_not_native_ones() {
+        fn app() -> Element {
+            rsx! {
+                {font_select("Heading font", "inter".into(), |_| {})}
+                {select_field("Mark", Mark::ALL[0], |_| {})}
+            }
+        }
+        let html = render(app);
+        assert!(!html.contains("<select"), "{html}");
+        assert_eq!(html.matches(r#"role="combobox""#).count(), 2, "{html}");
+        for id in ["field-heading-font", "field-mark"] {
+            assert!(html.contains(&format!(r#"for="{id}""#)) && html.contains(&format!(r#"id="{id}""#)), "{id} is labelled");
         }
     }
 

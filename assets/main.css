@@ -116,7 +116,7 @@ section h2 {
 }
 
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-.field > span { color: var(--color-text-muted); font-size: 12px; }
+.field > span, .field > label { color: var(--color-text-muted); font-size: 12px; }
 .field.check { flex-direction: row; align-items: center; gap: 10px; min-height: var(--target-touch); }
 .field.check > span { color: var(--color-text); }
 
@@ -124,7 +124,7 @@ section h2 {
 .row .field { flex: 1; min-width: 0; }
 
 /* ---- glass controls ---- */
-input[type="text"], textarea, select {
+input[type="text"], textarea {
   width: 100%;
   background: var(--glass);
   color: var(--color-text);
@@ -137,62 +137,12 @@ input[type="text"], textarea, select {
   transition: border-color var(--dur-fast), background var(--dur-fast), box-shadow var(--dur-fast);
 }
 textarea { resize: vertical; }
-input:focus, textarea:focus, select:focus {
+input:focus, textarea:focus {
   outline: none;
   border-color: var(--color-accent-text);
   box-shadow: 0 0 0 3px var(--color-accent-soft);
 }
-button:focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 2px; }
-
-select {
-  appearance: none;
-  -webkit-appearance: none;
-  padding-right: 38px;
-  cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%239aa3b2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 14px center;
-}
-select option { background: var(--color-surface); color: var(--color-text); }
-
-/* Themed dropdown list. Chrome and Edge can style the open list; other browsers keep the native one. */
-@supports (appearance: base-select) {
-  select, select::picker(select) { appearance: base-select; }
-  select {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-right: 14px;
-    background-image: none;
-  }
-  select::picker-icon {
-    content: "\25BE";
-    color: var(--color-text-muted);
-    transition: rotate var(--dur-fast);
-  }
-  select:open::picker-icon { rotate: 180deg; }
-  select::picker(select) {
-    margin-top: 6px;
-    padding: 6px;
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-card);
-    background: var(--color-popover);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
-    box-shadow: var(--shadow-pop);
-  }
-  select option {
-    padding: 9px 12px;
-    border-radius: var(--radius-inner);
-    background: transparent;
-    color: var(--color-text);
-    cursor: pointer;
-    transition: background-color var(--dur-fast);
-  }
-  select option:focus-visible { background: var(--glass-hover); outline: none; }
-  select option:checked { background: var(--color-accent-soft); color: var(--color-accent-text); font-weight: 700; }
-  select option::checkmark { display: none; }
-}
+button:where(:not(.btn, .input)):focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 2px; }
 
 /* Swatch palette: preset colours plus a rainbow Custom swatch that opens the native picker. */
 .swatches { display: flex; flex-wrap: wrap; gap: var(--space-2); }
@@ -270,7 +220,7 @@ input[type="file"]::file-selector-button {
   transition: background var(--dur-fast), border-color var(--dur-fast);
 }
 
-button {
+button:where(:not(.btn, .input)) {
   min-height: var(--target-touch); /* phones; relaxed from 48rem */
   background: var(--glass);
   color: var(--color-text);
@@ -282,7 +232,7 @@ button {
   box-shadow: inset 0 1px 0 var(--shine);
   transition: background var(--dur-fast), border-color var(--dur-fast), transform var(--dur-fast);
 }
-button:active { transform: translateY(1px); }
+button:where(:not(.btn, .input)):active { transform: translateY(1px); }
 button.primary {
   background: var(--color-accent);
   border-color: transparent;
@@ -318,6 +268,7 @@ button.theme-card.active {
 button.theme-card.active .theme-name { color: var(--color-accent-text); font-weight: 700; }
 
 /* Font pickers: the live sample under each one */
+.font-aa { font-size: 1.05em; min-width: 2ch; display: inline-block; }
 .font-sample { margin: 2px 2px 0; font-size: 19px; line-height: 1.3; color: var(--color-text); }
 button.reset-fonts { width: 100%; height: auto; padding: 8px 14px; margin: 0 0 12px; }
 
@@ -392,6 +343,9 @@ button.reset-fonts { width: 100%; height: auto; padding: 8px 14px; margin: 0 0 1
 .collapsible.open > .collapsible-body { grid-template-rows: 1fr; opacity: 1; }
 .collapsible-inner { min-height: 0; overflow: hidden; padding: 0 14px; }
 .collapsible.open .collapsible-inner { padding-block: 4px 14px; }
+/* Once open, stop clipping, so a drop-down list inside can reach past the section's edge. */
+.collapsible.open .collapsible-inner { animation: unclip 0s var(--dur-base) forwards; }
+@keyframes unclip { to { overflow: visible; } }
 @media (prefers-reduced-motion: reduce) {
   .collapsible-body, .chevron { transition: none; }
 }
@@ -524,8 +478,8 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
   .toolbar { margin-bottom: 14px; font-size: inherit; }
   .checker { padding: 18px; }
   #preview svg { max-height: 78vh; max-height: 78dvh; }
-  input[type="text"], textarea, select { font-size: inherit; }
-  button { min-height: 0; }
+  input[type="text"], textarea { font-size: inherit; }
+  button:where(:not(.btn, .input)) { min-height: 0; }
   button.small { min-height: 40px; }
   input[type="range"] { height: 22px; }
   .field.check { min-height: 0; }
@@ -536,8 +490,7 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
 @media (hover: hover) and (pointer: fine) {
   .tabs button.tab:not(.on):hover { color: var(--color-text); background: var(--glass-hover); }
 
-  /* background-color, not the shorthand: the shorthand would reset the select's arrow image. */
-  input[type="text"]:hover:not(:focus), textarea:hover:not(:focus), select:hover:not(:focus) {
+  input[type="text"]:hover:not(:focus), textarea:hover:not(:focus) {
     background-color: var(--glass-hover);
     border-color: var(--glass-border-hover);
   }
@@ -546,7 +499,7 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
 
   input[type="file"]::file-selector-button:hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
 
-  button:hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
+  button:where(:not(.btn, .input)):hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
 
   button.primary:hover { background: var(--color-accent-hover); border-color: transparent; }
 
@@ -555,7 +508,6 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
   .collapsible > button.collapsible-head:hover { background: var(--glass-hover); color: var(--color-text); }
 
   button.theme-card:hover { border-color: var(--color-accent-text); box-shadow: 0 0 0 3px var(--color-accent-soft); }
-  select option:not(:checked):hover { background: var(--glass-hover); }
 }
 
 /* Primary action: a shine sweeps across (30). Also on keyboard focus. */
