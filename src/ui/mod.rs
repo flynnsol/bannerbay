@@ -5,7 +5,6 @@ use crate::model::*;
 use crate::measure;
 use crate::render::{render_with_metrics, Metrics};
 use crate::storage::{self, Saved};
-use crate::theme_pref;
 
 mod collapsible;
 mod fields;
@@ -47,12 +46,6 @@ pub fn App() -> Element {
     });
     let png_scale = use_signal(|| 2u32);
     let tab = use_signal(tabs::load);
-    // Applied before the first render, so the editor never flashes the wrong theme.
-    let theme = use_signal(|| {
-        let pref = theme_pref::load();
-        theme_pref::apply(pref);
-        pref
-    });
     let c = cfg();
     // Real text widths, once the fonts in use have loaded. Until then (or off the web) the estimate
     // is used, and a re-render follows as soon as `font_tick` changes.
@@ -66,8 +59,8 @@ pub fn App() -> Element {
 
     rsx! {
         div { class: "app",
-            {top_bar(stem, faces, png_scale, theme)}
-            aside { class: "panel",
+            {top_bar(stem, faces, png_scale)}
+            aside { class: "editor-panel",
                 {tab_list(tab)}
                 if tab() == PanelTab::Theme {
                     section { id: "panel-theme", role: "tabpanel", aria_labelledby: "tab-theme",

@@ -1,59 +1,15 @@
-/* Editor design tokens (Dioxus Atelier roles, Ember Night palette).
-   Loaded before main.css. Components use var(--*) only; no raw colours outside this file.
-   With no data-theme the editor follows the system; data-theme="light" or "dark" forces one.
-   The light values appear twice (forced, and system-light); keep the two blocks in step. */
+/* Bannerbay's editor tokens, on top of atelier-ui's (which sit in @layer atelier.*, so these win).
+   Loaded before main.css. Components use var(--*) only; no raw colours outside this file. */
 
-/* ---------- Colour: Ember Night ---------- */
-:root,
-:root[data-theme="dark"] {
-  --color-bg: #0a0a0a;
-  --color-surface: #151515;
-  --color-surface-alt: #1f1f1f;
-  --color-text: #f5f5f0;
-  --color-text-muted: #9a9a92;
-  --color-border: #2b2b2b;
-  --color-accent: #ffd400;
-  --color-accent-hover: #d0ad0a;
-  --color-accent-contrast: #0a0a0a;
-  --color-accent-text: var(--color-accent);
-  --color-warn: #f0a35e;
-  --color-danger: #ff8a80;
-  --shadow-color: #000000;
-  color-scheme: dark;
-}
-:root[data-theme="light"] {
-  --color-bg: #fafaf7;
-  --color-surface: #ffffff;
-  --color-surface-alt: #f0efe8;
-  --color-text: #111111;
-  --color-text-muted: #6b6b63;
-  --color-border: #e2e1d8;
-  --color-accent: #f2c200;
-  --color-accent-hover: #c39c00;
-  --color-accent-contrast: #111111;
-  --color-accent-text: #7a5f00; /* yellow is too pale for text on light; 6:1 on --color-bg */
-  --color-warn: #a4520f;
-  --color-danger: #b3261e;
+/* ---------- Colour ----------
+   The Ember Night palette itself comes from atelier-ui (data-palette="ember-night", pinned by
+   theme_setup.rs); ThemeProvider sets data-theme to light or dark. These are Bannerbay's extras. */
+:root {
+  --color-warn: var(--color-warning);
   --shadow-color: #3b3a30;
-  color-scheme: light;
 }
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme]) {
-    --color-bg: #fafaf7;
-    --color-surface: #ffffff;
-    --color-surface-alt: #f0efe8;
-    --color-text: #111111;
-    --color-text-muted: #6b6b63;
-    --color-border: #e2e1d8;
-    --color-accent: #f2c200;
-    --color-accent-hover: #c39c00;
-    --color-accent-contrast: #111111;
-    --color-accent-text: #7a5f00; /* yellow is too pale for text on light; 6:1 on --color-bg */
-    --color-warn: #a4520f;
-    --color-danger: #b3261e;
-    --shadow-color: #3b3a30;
-    color-scheme: light;
-  }
+:root[data-theme="dark"] {
+  --shadow-color: #000000;
 }
 
 /* ---------- Derived surfaces: glass, lines and shadows follow the palette ---------- */
@@ -106,7 +62,7 @@
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  --blur-glass: blur(20px) saturate(140%);
+  --glass-filter: blur(20px) saturate(140%); /* atelier-ui keeps --blur-glass as a plain length, so this has its own name */
 }
 
 /* ---------- Reduced motion ---------- */

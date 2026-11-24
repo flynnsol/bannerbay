@@ -6,10 +6,11 @@ mod measure;
 mod model;
 mod render;
 mod storage;
-mod theme_pref;
+mod theme_setup;
 mod themes;
 mod ui;
 
+use atelier_ui::theme::ThemeProvider;
 use dioxus::prelude::*;
 
 const TOKENS_CSS: Asset = asset!("/assets/tokens.css");
@@ -19,6 +20,7 @@ const FAVICON_ICO: Asset = asset!("/assets/favicon.ico");
 const APPLE_TOUCH_ICON: Asset = asset!("/assets/apple-touch-icon.png");
 
 fn main() {
+    theme_setup::prepare();
     dioxus::launch(app);
 }
 
@@ -31,6 +33,6 @@ fn app() -> Element {
         document::Stylesheet { href: TOKENS_CSS }
         document::Stylesheet { href: MAIN_CSS }
         style { dangerous_inner_html: fonts::font_face_css() }
-        ui::App {}
+        ThemeProvider { ui::App {} }
     }
 }

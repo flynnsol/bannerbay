@@ -41,10 +41,10 @@ body {
   border-bottom: 1px solid var(--line);
 }
 .theme-toggle { margin-left: auto; }
-.brand { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
-.brand h1 { margin: 0; font-size: 20px; color: var(--color-accent-text); }
+.topbar-brand { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.topbar-brand h1 { margin: 0; font-size: 20px; color: var(--color-accent-text); }
 .brand-mark { width: 30px; height: 30px; flex: none; }
-.brand .tagline { display: none; margin: 0; color: var(--color-text-muted); font-size: var(--text-small); }
+.topbar-brand .tagline { display: none; margin: 0; color: var(--color-text-muted); font-size: var(--text-small); }
 button.icon {
   display: inline-grid;
   place-items: center;
@@ -54,12 +54,12 @@ button.icon {
 }
 button.icon svg { width: 18px; height: 18px; }
 
-.panel {
+.editor-panel {
   grid-area: panel;
   min-width: 0;
   background: var(--color-panel);
-  -webkit-backdrop-filter: var(--blur-glass);
-  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
   padding: 0 var(--space-4) var(--space-6);
 }
 
@@ -73,8 +73,8 @@ button.icon svg { width: 18px; height: 18px; }
   overflow-x: auto;
   scrollbar-width: none;
   background: var(--color-panel);
-  -webkit-backdrop-filter: var(--blur-glass);
-  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
   border-bottom: 1px solid var(--line);
 }
 .tabs::-webkit-scrollbar { display: none; }
@@ -177,8 +177,8 @@ select option { background: var(--color-surface); color: var(--color-text); }
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-card);
     background: var(--color-popover);
-    -webkit-backdrop-filter: var(--blur-glass);
-    backdrop-filter: var(--blur-glass);
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
     box-shadow: var(--shadow-pop);
   }
   select option {
@@ -417,8 +417,8 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
   min-width: 0;
   padding: var(--space-3) var(--space-4);
   background: var(--color-panel);
-  -webkit-backdrop-filter: var(--blur-glass);
-  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
   border-bottom: 1px solid var(--line);
 }
 
@@ -444,8 +444,8 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom));
   background: var(--color-popover);
-  -webkit-backdrop-filter: var(--blur-glass);
-  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
   border-top: 1px solid var(--line);
 }
 .actions > button { flex: 1 1 0; min-width: 0; min-height: var(--target-touch); padding-inline: var(--space-2); }
@@ -481,10 +481,10 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
     z-index: 10;
     padding: var(--space-3) var(--space-6);
     background: var(--color-panel);
-    -webkit-backdrop-filter: var(--blur-glass);
-    backdrop-filter: var(--blur-glass);
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
   }
-  .brand .tagline { display: block; }
+  .topbar-brand .tagline { display: block; }
   .theme-toggle { margin-left: 0; }
   button.icon { width: 40px; height: 40px; }
   .actions {
@@ -499,7 +499,7 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
   .actions > button { flex: none; min-height: 0; padding-inline: 16px; }
   .actions .segmented button.seg { min-height: 0; }
   .wide-only { display: inline; }
-  .panel {
+  .editor-panel {
     position: sticky;
     top: var(--topbar-h);
     max-height: calc(100vh - var(--topbar-h));

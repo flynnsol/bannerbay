@@ -6,7 +6,8 @@ description = "Make README banners and social cards in seconds, right in the bro
 license = "MIT"
 
 [dependencies]
-dioxus = { version = "0.7", features = [] }
+dioxus = { version = "0.7.10", features = [] }
+atelier-ui = { git = "https://github.com/flynnsol/dioxus-atelier-ui", tag = "v0.1.0" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
@@ -15,7 +16,7 @@ web-sys = { version = "0.3", features = ["Window", "Storage", "Document", "Eleme
 
 [features]
 default = ["web"]
-web = ["dioxus/web"]
+web = ["dioxus/web", "atelier-ui/web"]
 
 [profile.release]
 opt-level = "z"
