@@ -45,14 +45,6 @@ body {
 .topbar-brand h1 { margin: 0; font-size: 20px; color: var(--color-accent-text); }
 .brand-mark { width: 30px; height: 30px; flex: none; }
 .topbar-brand .tagline { display: none; margin: 0; color: var(--color-text-muted); font-size: var(--text-small); }
-button.icon {
-  display: inline-grid;
-  place-items: center;
-  width: var(--target-touch);
-  height: var(--target-touch);
-  padding: 0;
-}
-button.icon svg { width: 18px; height: 18px; }
 
 .editor-panel {
   grid-area: panel;
@@ -94,7 +86,6 @@ section h2 {
 .row { display: flex; gap: 10px; }
 .row .field { flex: 1; min-width: 0; }
 
-button:where(:not(.btn, .input, .checkbox-box, .toggle, .tab, .accordion-head)):focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 2px; }
 
 /* Swatch palette: preset colours plus a rainbow Custom swatch that opens the native picker. */
 .swatches { display: flex; flex-wrap: wrap; gap: var(--space-2); }
@@ -143,28 +134,8 @@ input[type="file"]::file-selector-button {
   transition: background var(--dur-fast), border-color var(--dur-fast);
 }
 
-button:where(:not(.btn, .input, .checkbox-box, .toggle, .tab, .accordion-head)) {
-  min-height: var(--target-touch); /* phones; relaxed from 48rem */
-  background: var(--glass);
-  color: var(--color-text);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-control);
-  padding: 9px 16px;
-  font: inherit;
-  cursor: pointer;
-  box-shadow: inset 0 1px 0 var(--shine);
-  transition: background var(--dur-fast), border-color var(--dur-fast), transform var(--dur-fast);
-}
-button:where(:not(.btn, .input, .checkbox-box, .toggle, .tab, .accordion-head)):active { transform: translateY(1px); }
-button.primary {
-  background: var(--color-accent);
-  border-color: transparent;
-  color: var(--color-accent-contrast);
-  font-weight: 700;
-  box-shadow: var(--shadow-primary), var(--shine-primary);
-}
 
-button.reset.danger {
+.btn.reset.danger {
   color: var(--color-danger);
   border-color: color-mix(in srgb, var(--color-danger) 50%, transparent);
   background: color-mix(in srgb, var(--color-danger) 10%, transparent);
@@ -178,8 +149,14 @@ button.theme-card {
   gap: 6px;
   padding: 6px;
   text-align: left;
+  font: inherit;
   font-size: 12px;
+  color: var(--color-text);
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-card);
+  box-shadow: inset 0 1px 0 var(--shine);
+  cursor: pointer;
 }
 button.theme-card.active {
   border-color: var(--color-accent-text);
@@ -193,7 +170,7 @@ button.theme-card.active .theme-name { color: var(--color-accent-text); font-wei
 /* Font pickers: the live sample under each one */
 .font-aa { font-size: 1.05em; min-width: 2ch; display: inline-block; }
 .font-sample { margin: 2px 2px 0; font-size: 19px; line-height: 1.3; color: var(--color-text); }
-button.reset-fonts { width: 100%; height: auto; padding: 8px 14px; margin: 0 0 12px; }
+.btn.reset-fonts { width: 100%; justify-content: center; margin: 0 0 12px; }
 
 /* Small helper text under a field */
 .hint { margin: -6px 0 12px; color: var(--color-text-muted); font-size: 12px; }
@@ -233,15 +210,7 @@ button.reset-fonts { width: 100%; height: auto; padding: 8px 14px; margin: 0 0 1
 /* Highlight colour: picker with an inline "Use accent" button, bottom-aligned */
 .highlight-row { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); margin-bottom: 12px; }
 .highlight-row .field { width: 100%; min-width: 0; margin-bottom: 0; }
-button.small {
-  flex: none;
-  height: 40px;
-  padding: 0 14px;
-  font-size: 12px;
-  white-space: nowrap;
-  color: var(--color-text-muted);
-}
-button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px; color: var(--color-text-muted); }
+.btn.reset { width: 100%; justify-content: center; margin-top: 4px; font-size: var(--text-small); color: var(--color-text-muted); }
 
 /* The preview stays pinned at the top on phones while the panel scrolls under it. */
 .stage {
@@ -283,7 +252,7 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
   backdrop-filter: var(--glass-filter);
   border-top: 1px solid var(--line);
 }
-.actions > button { flex: 1 1 0; min-width: 0; min-height: var(--target-touch); padding-inline: var(--space-2); }
+.actions > .btn { flex: 1 1 0; min-width: 0; justify-content: center; padding-inline: var(--space-2); }
 .wide-only { display: none; }
 
 /* Checkerboard shows through transparent rounded corners. */
@@ -320,7 +289,6 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
   }
   .topbar-brand .tagline { display: block; }
   .theme-toggle { margin-left: 0; }
-  button.icon { width: 40px; height: 40px; }
   .actions {
     position: static;
     margin-left: auto;
@@ -330,7 +298,7 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
     backdrop-filter: none;
     border: 0;
   }
-  .actions > button { flex: none; min-height: 0; padding-inline: 16px; }
+  .actions > .btn { flex: none; padding-inline: var(--space-4); }
   .wide-only { display: inline; }
   .editor-panel {
     position: sticky;
@@ -355,8 +323,6 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
   .toolbar { margin-bottom: 14px; font-size: inherit; }
   .checker { padding: 18px; }
   #preview svg { max-height: 78vh; max-height: 78dvh; }
-  button:where(:not(.btn, .input, .checkbox-box, .toggle, .tab, .accordion-head)) { min-height: 0; }
-  button.small { min-height: 40px; }
   input[type="file"]::file-selector-button { min-height: 0; }
 }
 
@@ -368,26 +334,13 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
 
   input[type="file"]::file-selector-button:hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
 
-  button:where(:not(.btn, .input, .checkbox-box, .toggle, .tab, .accordion-head)):hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
 
-  button.primary:hover { background: var(--color-accent-hover); border-color: transparent; }
 
 
 
   button.theme-card:hover { border-color: var(--color-accent-text); box-shadow: 0 0 0 3px var(--color-accent-soft); }
 }
 
-/* Primary action: a shine sweeps across (30). Also on keyboard focus. */
-button.primary { position: relative; overflow: hidden; isolation: isolate; }
-button.primary::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--color-surface) 55%, transparent) 50%, transparent 70%);
-  transform: translateX(-120%);
-  transition: none; /* one-way: sweep in on hover or focus, snap back when it ends */
-}
 button.theme-card {
   transition:
     transform var(--dur-fast) var(--ease-out),
@@ -398,10 +351,6 @@ button.theme-card {
 
 /* Movement: hover-capable devices with reduced motion off. */
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  button.primary:hover::after { transform: translateX(120%); transition: transform var(--dur-slow) var(--ease-out); }
   button.theme-card:hover { transform: translateY(-3px); }
   button.theme-card:hover:active { transform: translateY(1px); }
-}
-@media (prefers-reduced-motion: no-preference) {
-  button.primary:focus-visible::after { transform: translateX(120%); transition: transform var(--dur-slow) var(--ease-out); }
 }

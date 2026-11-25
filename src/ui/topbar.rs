@@ -2,7 +2,7 @@
 use dioxus::prelude::*;
 
 use crate::export;
-use atelier_ui::elements::{SelectOption, ThemeToggle, ToggleGroup};
+use atelier_ui::elements::{Button, ButtonVariant, SelectOption, ThemeToggle, ToggleGroup};
 
 const BRAND_MARK: Asset = asset!("/assets/mark-dark-bg.svg");
 
@@ -30,8 +30,9 @@ pub fn top_bar(stem: String, faces: String, mut png_scale: Signal<u32>) -> Eleme
                         }
                     },
                 }
-                button {
-                    class: "primary",
+                Button {
+                    variant: ButtonVariant::Primary,
+                    class: "btn--shine",
                     onclick: {
                         let (stem, faces) = (stem.clone(), faces.clone());
                         move |_| export::save_png(&stem, png_scale(), &faces)
@@ -40,7 +41,7 @@ pub fn top_bar(stem: String, faces: String, mut png_scale: Signal<u32>) -> Eleme
                     span { class: "wide-only", "Download " }
                     "PNG"
                 }
-                button {
+                Button {
                     onclick: move |_| export::save_svg(&stem, &faces),
                     aria_label: "Download SVG",
                     span { class: "wide-only", "Download " }
@@ -77,5 +78,7 @@ mod tests {
         assert!(html.contains(r#"class="btn theme-toggle""#), "{html}");
         assert!(!html.contains("icon theme-toggle"), "the hand-rolled toggle is gone");
         assert!(html.contains(r#"aria-label="PNG scale""#) && html.contains(r#"class="toggle""#), "{html}");
+        assert!(html.contains(r#"class="btn btn--primary btn--shine""#), "PNG is the library primary button: {html}");
+        assert!(html.contains(r#"<button class="btn" type="button" aria-label="Download SVG""#), "{html}");
     }
 }

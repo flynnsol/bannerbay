@@ -13,6 +13,7 @@ mod theme_gallery;
 mod topbar;
 
 use fields::*;
+use atelier_ui::elements::{Button, ButtonSize};
 use atelier_ui::widgets::{Accordion, TabPanel, Tabs};
 use tabs::PanelTab;
 use swatches::{swatch_field, ACCENTS, BACKGROUNDS, TEXTS};
@@ -91,8 +92,9 @@ pub fn App() -> Element {
                             {font_select("Heading font", c.heading_font.clone(), move |v| cfg.write().heading_font = v)}
                             {font_select("Body font", c.body_font.clone(), move |v| cfg.write().body_font = v)}
                             if c.heading_font != DEFAULT_FONT || c.body_font != DEFAULT_FONT {
-                                button {
-                                    class: "small reset-fonts",
+                                Button {
+                                    size: ButtonSize::Small,
+                                    class: "reset-fonts",
                                     onclick: move |_| {
                                         let mut cfg = cfg.write();
                                         cfg.heading_font = DEFAULT_FONT.into();
@@ -158,7 +160,7 @@ pub fn App() -> Element {
                                 div { class: "highlight-row",
                                     {swatch_field("Highlight colour", c.highlight_color().to_string(), ACCENTS, move |v| cfg.write().highlight = Some(v))}
                                     if c.highlight.is_some() {
-                                        button { class: "small", onclick: move |_| cfg.write().highlight = None, "Use accent" }
+                                        Button { size: ButtonSize::Small, onclick: move |_| cfg.write().highlight = None, "Use accent" }
                                     }
                                 }
                                 {slider("Text size", c.style.header.size, (20.0, 120.0, 1.0), move |v| cfg.write().style.header.size = v)}
@@ -222,18 +224,20 @@ pub fn App() -> Element {
                 section { class: "saved-note",
                     h2 { "Saved in this browser" }
                     p { class: "hint", "Your banner is saved automatically and never leaves this browser." }
-                    button {
-                        class: if confirm_reset() { "reset danger" } else { "reset" },
-                        onmouseleave: move |_| confirm_reset.set(false),
-                        onclick: move |_| {
-                            if confirm_reset() {
-                                cfg.set(Config::default());
-                                confirm_reset.set(false);
-                            } else {
-                                confirm_reset.set(true);
-                            }
-                        },
-                        if confirm_reset() { "Click again to erase everything" } else { "Reset everything" }
+                    // Button takes no mouse-leave handler, so the wrapper cancels the confirmation.
+                    div { class: "reset-all", onmouseleave: move |_| confirm_reset.set(false),
+                        Button {
+                            class: if confirm_reset() { "reset danger" } else { "reset" },
+                            onclick: move |_| {
+                                if confirm_reset() {
+                                    cfg.set(Config::default());
+                                    confirm_reset.set(false);
+                                } else {
+                                    confirm_reset.set(true);
+                                }
+                            },
+                            if confirm_reset() { "Click again to erase everything" } else { "Reset everything" }
+                        }
                     }
                 }
             }
@@ -275,5 +279,17 @@ mod tests {
         assert_eq!(html.matches(r#"class="tab-panel active""#).count(), 1, "one is shown");
         assert_eq!(html.matches(r#"role="tab""#).count(), PanelTab::ALL.len());
         assert!(html.contains(r#"class="accordion open""#), "Fonts starts open: {html}");
+        assert!(html.contains(r#"class="btn reset""#), "Reset everything is a library button: {html}");
+    }
+
+    /// Every button is either a library component or a Bannerbay one with its own class, so
+    /// main.css never styles bare `button`s (which, unlayered, would beat the library's styles).
+    #[test]
+    fn main_css_never_styles_bare_buttons() {
+        let css = include_str!("../../assets/main.css");
+        for line in css.lines().map(str::trim_start) {
+            let bare = ["button {", "button:", "button,", "button.primary", "button.small", "button.reset"];
+            assert!(!bare.iter().any(|b| line.starts_with(b)), "main.css styles bare buttons: `{line}`");
+        }
     }
 }

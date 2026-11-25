@@ -1,6 +1,6 @@
 //! Form controls shared by every panel: labelled inputs, sliders, selects and the Style group.
 use atelier_ui::widgets::Accordion;
-use atelier_ui::elements::{Checkbox, Field, FieldControl, Select, SelectOption, Slider, ToggleGroup};
+use atelier_ui::elements::{Button, ButtonSize, ButtonVariant, Checkbox, Field, FieldControl, Select, SelectOption, Slider, ToggleGroup};
 use dioxus::prelude::*;
 
 use crate::model::*;
@@ -111,7 +111,7 @@ pub fn style_group(children: Element, mut on_reset: impl FnMut() + 'static) -> E
     rsx! {
         Accordion { title: "Style",
             {children}
-            button { class: "reset", onclick: move |_| on_reset(), "Reset to default" }
+            Button { variant: ButtonVariant::Ghost, size: ButtonSize::Small, class: "reset", onclick: move |_| on_reset(), "Reset to default" }
         }
     }
 }
