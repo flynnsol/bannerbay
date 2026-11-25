@@ -1,10 +1,10 @@
 //! Form controls shared by every panel: labelled inputs, sliders, selects and the Style group.
+use atelier_ui::widgets::Accordion;
 use atelier_ui::elements::{Checkbox, Field, FieldControl, Select, SelectOption, Slider, ToggleGroup};
 use dioxus::prelude::*;
 
 use crate::model::*;
 
-use super::collapsible::Collapsible;
 
 pub fn text_field(label: &'static str, value: String, on_input: impl FnMut(String) + 'static) -> Element {
     rsx! { Field { label, id: field_id(label), value, oninput: on_input } }
@@ -106,11 +106,13 @@ pub fn slider(label: &'static str, value: f64, (min, max, step): (f64, f64, f64)
     rsx! { Slider { label, value, min, max, step, onchange: on_input } }
 }
 
-/// A collapsed "Style" group with a Reset button.
-pub fn style_group(children: Element, on_reset: impl FnMut() + 'static) -> Element {
-    let mut on_reset = on_reset;
+/// A collapsed "Style" group (atelier-ui `Accordion`) with a Reset button at the end.
+pub fn style_group(children: Element, mut on_reset: impl FnMut() + 'static) -> Element {
     rsx! {
-        Collapsible { title: "Style", on_reset: move |_| on_reset(), {children} }
+        Accordion { title: "Style",
+            {children}
+            button { class: "reset", onclick: move |_| on_reset(), "Reset to default" }
+        }
     }
 }
 
@@ -287,6 +289,17 @@ mod tests {
         assert_eq!(html.matches(r#"aria-pressed="true""#).count(), 1, "{html}");
         assert!(html.contains("Social / OG card (1200×630)"), "{html}");
         assert!(!html.contains("seg on"), "{html}");
+    }
+
+    #[test]
+    fn style_groups_are_closed_accordions_with_a_reset() {
+        fn app() -> Element {
+            rsx! { {style_group(rsx! { p { "inside" } }, || {})} }
+        }
+        let html = render(app);
+        assert!(html.contains(r#"class="accordion""#) && html.contains(r#"aria-expanded="false""#), "{html}");
+        assert!(html.contains("Reset to default") && html.contains("inside"), "{html}");
+        assert!(!html.contains("collapsible"), "{html}");
     }
 
     #[test]

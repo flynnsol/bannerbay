@@ -1,4 +1,5 @@
-//! The side panel's tabs, and how the keyboard moves between them (WAI-ARIA tabs pattern).
+//! The side panel's tabs. atelier-ui's `Tabs` draws them and handles the keyboard; this module
+//! names them and remembers the open one in this browser.
 use dioxus::prelude::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
@@ -34,27 +35,23 @@ impl PanelTab {
         }
     }
 
-    fn index(self) -> usize {
+    /// The tab with this visible label.
+    pub fn from_label(label: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|t| t.label() == label.trim())
+    }
+
+    /// The labels for atelier-ui `Tabs`, in order.
+    pub fn labels() -> Vec<String> {
+        Self::ALL.iter().map(|t| t.label().to_string()).collect()
+    }
+
+    pub fn index(self) -> usize {
         Self::ALL.iter().position(|&t| t == self).unwrap_or(0)
     }
 
     /// Parses a stored tab; anything unknown opens Theme.
     pub fn from_key(key: &str) -> Self {
         Self::ALL.into_iter().find(|t| t.key() == key).unwrap_or_default()
-    }
-
-    /// The tab a key press moves to, or None when the key is not a tab key.
-    /// Arrows move and wrap at both ends; Home and End jump to the first and last tab.
-    pub fn after_key(self, key: &str) -> Option<Self> {
-        let n = Self::ALL.len();
-        let i = match key {
-            "ArrowRight" => (self.index() + 1) % n,
-            "ArrowLeft" => (self.index() + n - 1) % n,
-            "Home" => 0,
-            "End" => n - 1,
-            _ => return None,
-        };
-        Some(Self::ALL[i])
     }
 }
 
@@ -86,42 +83,20 @@ pub fn load() -> PanelTab {
 pub fn save(_tab: PanelTab) {}
 
 
-fn select(mut tab: Signal<PanelTab>, next: PanelTab) {
-    save(next);
-    tab.set(next);
-}
-
-/// The tab strip. Only the selected tab is in the Tab order; arrows, Home and End move between
-/// tabs and take focus with them, as the WAI-ARIA tabs pattern expects.
-pub fn tab_list(tab: Signal<PanelTab>) -> Element {
-    let current = tab();
-    rsx! {
-        div { class: "tabs", role: "tablist", aria_label: "Banner settings",
-            for t in PanelTab::ALL {
-                button {
-                    id: "tab-{t.key()}",
-                    class: if t == current { "tab on" } else { "tab" },
-                    role: "tab",
-                    aria_selected: t == current,
-                    aria_controls: "panel-{t.key()}",
-                    tabindex: if t == current { "0" } else { "-1" },
-                    onclick: move |_| select(tab, t),
-                    onkeydown: move |e: KeyboardEvent| {
-                        // Leave modified keys alone: Alt+Arrow is browser back and forward.
-                        if !e.modifiers().is_empty() {
-                            return;
-                        }
-                        if let Some(next) = t.after_key(&e.key().to_string()) {
-                            e.prevent_default();
-                            select(tab, next);
-                            document::eval(&format!("document.getElementById('tab-{}')?.focus()", next.key()));
-                        }
-                    },
-                    "{t.label()}"
-                }
+/// Remembers whichever tab is selected now. atelier-ui's `Tabs` reports no changes, so the panel
+/// calls this after a click or key press and it reads the selected tab once the page has updated.
+pub fn remember() {
+    spawn(async move {
+        let mut eval = document::eval(
+            "requestAnimationFrame(() => setTimeout(() => dioxus.send(\
+             document.querySelector('.editor-panel [role=tab][aria-selected=true]')?.textContent ?? '')))",
+        );
+        if let Ok(label) = eval.recv::<String>().await {
+            if let Some(tab) = PanelTab::from_label(&label) {
+                save(tab);
             }
         }
-    }
+    });
 }
 
 #[cfg(test)]
@@ -145,23 +120,13 @@ mod tests {
     }
 
     #[test]
-    fn arrows_move_and_wrap() {
-        assert_eq!(Canvas.after_key("ArrowRight"), Some(Logo));
-        assert_eq!(Canvas.after_key("ArrowLeft"), Some(Theme));
-        assert_eq!(Features.after_key("ArrowRight"), Some(Theme));
-        assert_eq!(Theme.after_key("ArrowLeft"), Some(Features));
-    }
-
-    #[test]
-    fn home_and_end_jump() {
-        assert_eq!(Text.after_key("Home"), Some(Theme));
-        assert_eq!(Logo.after_key("End"), Some(Features));
-    }
-
-    #[test]
-    fn other_keys_are_ignored() {
-        for key in ["Enter", " ", "a", "Tab", "ArrowUp", "ArrowDown"] {
-            assert_eq!(Logo.after_key(key), None, "{key:?}");
+    fn labels_map_back_to_tabs() {
+        for tab in PanelTab::ALL {
+            assert_eq!(PanelTab::from_label(tab.label()), Some(tab));
         }
+        assert_eq!(PanelTab::from_label(" Logo "), Some(Logo), "whitespace around textContent");
+        assert_eq!(PanelTab::from_label(""), None);
+        assert_eq!(PanelTab::labels(), ["Theme", "Canvas", "Logo", "Text", "Features"]);
+        assert_eq!(Text.index(), 3);
     }
 }

@@ -6,7 +6,6 @@ use crate::measure;
 use crate::render::{render_with_metrics, Metrics};
 use crate::storage::{self, Saved};
 
-mod collapsible;
 mod fields;
 mod swatches;
 mod tabs;
@@ -14,7 +13,8 @@ mod theme_gallery;
 mod topbar;
 
 use fields::*;
-use tabs::{tab_list, PanelTab};
+use atelier_ui::widgets::{Accordion, TabPanel, Tabs};
+use tabs::PanelTab;
 use swatches::{swatch_field, ACCENTS, BACKGROUNDS, TEXTS};
 use theme_gallery::theme_gallery;
 use topbar::top_bar;
@@ -45,7 +45,8 @@ pub fn App() -> Element {
         save_state.set(storage::save(&c));
     });
     let png_scale = use_signal(|| 2u32);
-    let tab = use_signal(tabs::load);
+    // The tab open last time; read once, as the first tab.
+    let first_tab = use_hook(|| tabs::load().index());
     let c = cfg();
     // Real text widths, once the fonts in use have loaded. Until then (or off the web) the estimate
     // is used, and a re-render follows as soon as `font_tick` changes.
@@ -60,15 +61,19 @@ pub fn App() -> Element {
     rsx! {
         div { class: "app",
             {top_bar(stem, faces, png_scale)}
-            aside { class: "editor-panel",
-                {tab_list(tab)}
-                if tab() == PanelTab::Theme {
-                    section { id: "panel-theme", role: "tabpanel", aria_labelledby: "tab-theme",
+            aside {
+                class: "editor-panel",
+                // Tabs reports no changes, so remember the selected tab after any click or key.
+                onclick: move |_| tabs::remember(),
+                onkeyup: move |_| tabs::remember(),
+                Tabs { labels: PanelTab::labels(), initial: first_tab,
+                TabPanel { index: 0,
+                    section {
                         {theme_gallery(&c, &metrics, cfg)}
                     }
                 }
-                if tab() == PanelTab::Canvas {
-                    section { id: "panel-canvas", role: "tabpanel", aria_labelledby: "tab-canvas",
+                TabPanel { index: 1,
+                    section {
                         {segmented("Size", c.preset, move |v| cfg.write().preset = v)}
                         {segmented("Background", c.bg_kind, move |v| cfg.write().bg_kind = v)}
                         {swatch_field("Base", c.bg1.clone(), BACKGROUNDS, move |v| cfg.write().bg1 = v)}
@@ -82,7 +87,7 @@ pub fn App() -> Element {
                         }
                         {range_field("Corner radius", c.radius, 120, move |v| cfg.write().radius = v)}
                         {check_field("Accent glow", c.glow, move |v| cfg.write().glow = v)}
-                        collapsible::Collapsible { title: "Fonts", open: true,
+                        Accordion { title: "Fonts", initially_open: true,
                             {font_select("Heading font", c.heading_font.clone(), move |v| cfg.write().heading_font = v)}
                             {font_select("Body font", c.body_font.clone(), move |v| cfg.write().body_font = v)}
                             if c.heading_font != DEFAULT_FONT || c.body_font != DEFAULT_FONT {
@@ -100,8 +105,8 @@ pub fn App() -> Element {
                     }
                 }
 
-                if tab() == PanelTab::Logo {
-                    section { id: "panel-logo", role: "tabpanel", aria_labelledby: "tab-logo",
+                TabPanel { index: 2,
+                    section {
                         {select_field("Mark", c.mark, move |v| cfg.write().mark = v)}
                         label { class: "field",
                             span { "Upload your own (PNG, SVG, JPG)" }
@@ -134,8 +139,8 @@ pub fn App() -> Element {
                     }
                 }
 
-                if tab() == PanelTab::Text {
-                    section { id: "panel-text", role: "tabpanel", aria_labelledby: "tab-text",
+                TabPanel { index: 3,
+                    section {
                         {text_field("Name", c.name.clone(), move |v| cfg.write().name = v)}
                         {text_field("Tag", c.tag.clone(), move |v| cfg.write().tag = v)}
                         {style_group(
@@ -195,8 +200,8 @@ pub fn App() -> Element {
                     }
                 }
 
-                if tab() == PanelTab::Features {
-                    section { id: "panel-features", role: "tabpanel", aria_labelledby: "tab-features",
+                TabPanel { index: 4,
+                    section {
                         {area_field("One per line", c.features.clone(), 4, move |v| cfg.write().features = v)}
                         {segmented("Layout", c.layout, move |v| cfg.write().layout = v)}
                         {style_group(
@@ -213,7 +218,8 @@ pub fn App() -> Element {
                         )}
                     }
                 }
-                section {
+                }
+                section { class: "saved-note",
                     h2 { "Saved in this browser" }
                     p { class: "hint", "Your banner is saved automatically and never leaves this browser." }
                     button {
@@ -253,5 +259,21 @@ pub fn App() -> Element {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_tab_panel_stays_mounted_so_open_sections_survive_a_tab_switch() {
+        let mut dom = VirtualDom::new(|| rsx! { atelier_ui::theme::ThemeProvider { App {} } });
+        dom.rebuild_in_place();
+        let html = dioxus_ssr::render(&dom);
+        assert_eq!(html.matches(r#"role="tabpanel""#).count(), PanelTab::ALL.len(), "all panels are in the page");
+        assert_eq!(html.matches(r#"class="tab-panel active""#).count(), 1, "one is shown");
+        assert_eq!(html.matches(r#"role="tab""#).count(), PanelTab::ALL.len());
+        assert!(html.contains(r#"class="accordion open""#), "Fonts starts open: {html}");
     }
 }

@@ -91,14 +91,16 @@ mod tests {
     }
 
     /// Class names main.css styles that atelier-ui's stylesheet also styles, so its rules leak into
-    /// ours (its `.panel` has `margin: 60vh auto`). Listed ones are replaced by library components
-    /// in later tickets; anything else is a new clash.
+    /// ours (its `.panel` has `margin: 60vh auto`). `SHARED` names mean the same thing in both;
+    /// `LIBRARY` names are atelier-ui's own, which main.css names on purpose (to keep its generic
+    /// button rules off them, or to lay library components out in the panel). Anything else is a clash.
     #[test]
     fn main_css_classes_do_not_clash_with_atelier_ui() {
-        const PENDING: [&str; 6] = ["tab", "tabs", "field", "open", "active", "theme-toggle"];
-        // Library classes main.css names on purpose: to keep its generic button rules off them, or
-        // to lay library components out in the panel.
-        const EXCLUDED: [&str; 5] = ["btn", "input", "checkbox-box", "toggle", "toggle-group"];
+        const SHARED: [&str; 2] = ["field", "active"];
+        const LIBRARY: [&str; 15] = [
+            "btn", "input", "checkbox-box", "toggle", "toggle-group", "theme-toggle", "tab", "tab-scroll",
+            "tab-panel", "tab-panels", "accordion", "accordion-head", "accordion-body", "accordion-inner", "open",
+        ];
         let library = atelier_ui::styles::COMPONENTS_SRC;
         let ours = include_str!("../assets/main.css");
         let names = |css: &str| -> std::collections::BTreeSet<String> {
@@ -115,7 +117,7 @@ mod tests {
         let library = names(library);
         let clashes: Vec<_> = names(ours)
             .into_iter()
-            .filter(|n| library.contains(n) && !PENDING.contains(&n.as_str()) && !EXCLUDED.contains(&n.as_str()))
+            .filter(|n| library.contains(n) && !SHARED.contains(&n.as_str()) && !LIBRARY.contains(&n.as_str()))
             .collect();
         assert!(clashes.is_empty(), "main.css classes also styled by atelier-ui: {clashes:?}");
     }

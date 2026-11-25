@@ -64,48 +64,21 @@ button.icon svg { width: 18px; height: 18px; }
 }
 
 
-/* ---- panel tabs ---- */
-.tabs {
-  display: flex;
-  gap: 2px;
+/* ---- panel tabs (atelier-ui Tabs) ---- */
+/* The tab strip sits on the panel's glass and stays at the top of the panel while it scrolls. */
+.editor-panel .tab-scroll {
   margin: 0 calc(-1 * var(--space-4));
-  padding: var(--space-3) var(--space-4);
-  overflow-x: auto;
-  scrollbar-width: none;
-  background: var(--color-panel);
+  background: var(--color-popover); /* near-opaque: controls scroll under it */
   -webkit-backdrop-filter: var(--glass-filter);
   backdrop-filter: var(--glass-filter);
-  border-bottom: 1px solid var(--line);
 }
-.tabs::-webkit-scrollbar { display: none; }
-.tabs button.tab {
-  flex: 1 0 auto;
-  min-height: var(--target-touch);
-  padding: var(--space-2);
-  border: 1px solid transparent;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  box-shadow: none;
-  color: var(--color-text-muted);
-  font-size: var(--text-small);
-}
-.tabs button.tab.on {
-  background: var(--color-accent-soft);
-  border-color: var(--color-accent-soft);
-  color: var(--color-accent-text);
-  font-weight: 700;
-}
-
-/* A panel fades up when its tab opens (instant under reduced motion, via tokens.css). */
-@keyframes panel-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
-}
-section[role="tabpanel"] {
-  border-top: 0;
-  padding: var(--space-4) 0 6px;
-  animation: panel-in var(--dur-base) var(--ease-out);
-}
+/* Tight padding: the tabs are as wide as the widest label, and all five must fit a 360px panel. */
+.editor-panel .tab { padding-inline: var(--space-1); font-size: var(--text-small); }
+.editor-panel .tab[aria-selected="true"] { color: var(--color-accent-text); font-weight: 700; }
+.editor-panel .tab-panels { padding-top: var(--space-4); }
+/* Every panel stays mounted (open sections survive a tab switch); a hidden one takes no height. */
+.editor-panel .tab-panel:not(.active) { height: 0; overflow: hidden; }
+.tab-panel > section { border-top: 0; padding: 0 0 6px; }
 section { border-top: 1px solid var(--line); padding: 16px 0 6px; }
 section h2 {
   margin: 0 0 12px;
@@ -121,7 +94,7 @@ section h2 {
 .row { display: flex; gap: 10px; }
 .row .field { flex: 1; min-width: 0; }
 
-button:where(:not(.btn, .input, .checkbox-box, .toggle)):focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 2px; }
+button:where(:not(.btn, .input, .checkbox-box, .toggle, .tab, .accordion-head)):focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 2px; }
 
 /* Swatch palette: preset colours plus a rainbow Custom swatch that opens the native picker. */
 .swatches { display: flex; flex-wrap: wrap; gap: var(--space-2); }
@@ -170,7 +143,7 @@ input[type="file"]::file-selector-button {
   transition: background var(--dur-fast), border-color var(--dur-fast);
 }
 
-button:where(:not(.btn, .input, .checkbox-box, .toggle)) {
+button:where(:not(.btn, .input, .checkbox-box, .toggle, .tab, .accordion-head)) {
   min-height: var(--target-touch); /* phones; relaxed from 48rem */
   background: var(--glass);
   color: var(--color-text);
@@ -182,7 +155,7 @@ button:where(:not(.btn, .input, .checkbox-box, .toggle)) {
   box-shadow: inset 0 1px 0 var(--shine);
   transition: background var(--dur-fast), border-color var(--dur-fast), transform var(--dur-fast);
 }
-button:where(:not(.btn, .input, .checkbox-box, .toggle)):active { transform: translateY(1px); }
+button:where(:not(.btn, .input, .checkbox-box, .toggle, .tab, .accordion-head)):active { transform: translateY(1px); }
 button.primary {
   background: var(--color-accent);
   border-color: transparent;
@@ -231,58 +204,32 @@ button.reset-fonts { width: 100%; height: auto; padding: 8px 14px; margin: 0 0 1
 .segmented-field .hint { margin: 0; }
 .actions .toggle-group { flex: none; flex-wrap: nowrap; }
 
-/* Collapsible sections: the body animates its height with a 0fr -> 1fr grid row. */
-.collapsible {
+/* Sections (atelier-ui Accordion), drawn as glass cards in the panel. */
+.editor-panel .accordion {
   margin: 2px 0 14px;
+  padding: 0 14px;
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-card);
   background: var(--glass);
   box-shadow: inset 0 1px 0 var(--shine);
 }
-.collapsible > button.collapsible-head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  width: 100%;
-  min-height: var(--target-touch);
+.editor-panel .accordion-head {
+  width: calc(100% + 28px);
+  margin-inline: -14px;
   padding: var(--space-2) 14px;
-  border: 0;
   border-radius: var(--radius-card);
-  background: transparent;
-  box-shadow: none;
   color: var(--color-text-muted);
   font-size: var(--text-small);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  text-align: left;
 }
-.collapsible.open > button.collapsible-head { color: var(--color-text); }
-.chevron {
-  width: 7px;
-  height: 7px;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  transform: rotate(-45deg);
-  transition: transform var(--dur-fast) var(--ease-out);
-}
-.collapsible.open .chevron { transform: rotate(45deg); }
-.collapsible-body {
-  display: grid;
-  grid-template-rows: 0fr;
-  opacity: 0;
-  transition:
-    grid-template-rows var(--dur-base) var(--ease-out),
-    opacity var(--dur-base) var(--ease-out);
-}
-.collapsible.open > .collapsible-body { grid-template-rows: 1fr; opacity: 1; }
-.collapsible-inner { min-height: 0; overflow: hidden; padding: 0 14px; }
-.collapsible.open .collapsible-inner { padding-block: 4px 14px; }
+.editor-panel .accordion.open > .accordion-head { color: var(--color-text); }
+/* The library mutes accordion text; here the body holds controls, which keep the normal text colour. */
+.editor-panel .accordion-inner { color: var(--color-text); }
+.editor-panel .accordion.open > .accordion-body > .accordion-inner { padding-bottom: 14px; }
 /* Once open, stop clipping, so a drop-down list inside can reach past the section's edge. */
-.collapsible.open .collapsible-inner { animation: unclip 0s var(--dur-base) forwards; }
+.editor-panel .accordion.open > .accordion-body > .accordion-inner { animation: unclip 0s var(--dur-base) forwards; }
 @keyframes unclip { to { overflow: visible; } }
-@media (prefers-reduced-motion: reduce) {
-  .collapsible-body, .chevron { transition: none; }
-}
 /* Highlight colour: picker with an inline "Use accent" button, bottom-aligned */
 .highlight-row { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); margin-bottom: 12px; }
 .highlight-row .field { width: 100%; min-width: 0; margin-bottom: 0; }
@@ -394,10 +341,9 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
     padding: 0 18px 40px;
     border-right: 1px solid var(--line);
   }
-  .tabs { position: sticky; top: 0; z-index: 2; margin: 0 -18px; padding: var(--space-3) 18px; }
-  .tabs button.tab { min-height: 40px; padding: var(--space-2) var(--space-3); }
+  .editor-panel .tab-scroll { position: sticky; top: 0; z-index: 2; margin: 0 -18px; padding: 0; }
+  .editor-panel .tab { padding-inline: var(--space-1); }
   .swatch { width: 28px; height: 28px; }
-  .collapsible > button.collapsible-head { min-height: 40px; }
   .stage {
     position: static;
     padding: 20px 24px 40px;
@@ -409,26 +355,24 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
   .toolbar { margin-bottom: 14px; font-size: inherit; }
   .checker { padding: 18px; }
   #preview svg { max-height: 78vh; max-height: 78dvh; }
-  button:where(:not(.btn, .input, .checkbox-box, .toggle)) { min-height: 0; }
+  button:where(:not(.btn, .input, .checkbox-box, .toggle, .tab, .accordion-head)) { min-height: 0; }
   button.small { min-height: 40px; }
   input[type="file"]::file-selector-button { min-height: 0; }
 }
 
 /* ---- hover (Atelier hover map): only on devices that hover, so a tap never sticks ---- */
 @media (hover: hover) and (pointer: fine) {
-  .tabs button.tab:not(.on):hover { color: var(--color-text); background: var(--glass-hover); }
 
 
   button.swatch:hover { background: var(--swatch); border-color: var(--glass-border-hover); }
 
   input[type="file"]::file-selector-button:hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
 
-  button:where(:not(.btn, .input, .checkbox-box, .toggle)):hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
+  button:where(:not(.btn, .input, .checkbox-box, .toggle, .tab, .accordion-head)):hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
 
   button.primary:hover { background: var(--color-accent-hover); border-color: transparent; }
 
 
-  .collapsible > button.collapsible-head:hover { background: var(--glass-hover); color: var(--color-text); }
 
   button.theme-card:hover { border-color: var(--color-accent-text); box-shadow: 0 0 0 3px var(--color-accent-soft); }
 }
@@ -451,14 +395,12 @@ button.theme-card {
     border-color var(--dur-fast) var(--ease-out),
     background var(--dur-fast) var(--ease-out);
 }
-.theme-toggle svg { transition: transform var(--dur-base) var(--ease-pop); }
 
 /* Movement: hover-capable devices with reduced motion off. */
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   button.primary:hover::after { transform: translateX(120%); transition: transform var(--dur-slow) var(--ease-out); }
   button.theme-card:hover { transform: translateY(-3px); }
   button.theme-card:hover:active { transform: translateY(1px); }
-  .theme-toggle:hover svg { transform: rotate(-20deg) scale(1.12); }
 }
 @media (prefers-reduced-motion: no-preference) {
   button.primary:focus-visible::after { transform: translateX(120%); transition: transform var(--dur-slow) var(--ease-out); }
