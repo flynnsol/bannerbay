@@ -2,9 +2,14 @@
 use dioxus::prelude::*;
 
 use crate::export;
-use atelier_ui::elements::ThemeToggle;
+use atelier_ui::elements::{SelectOption, ThemeToggle, ToggleGroup};
 
 const BRAND_MARK: Asset = asset!("/assets/mark-dark-bg.svg");
+
+/// The PNG scale a ToggleGroup reports: 1 or 2, or nothing (an unpress or anything else).
+fn scale_choice(values: &[String]) -> Option<u32> {
+    values.first().and_then(|v| v.parse().ok()).filter(|s| matches!(s, 1 | 2))
+}
 
 pub fn top_bar(stem: String, faces: String, mut png_scale: Signal<u32>) -> Element {
     rsx! {
@@ -15,15 +20,15 @@ pub fn top_bar(stem: String, faces: String, mut png_scale: Signal<u32>) -> Eleme
                 p { class: "tagline", "Banners and social cards, made in your browser." }
             }
             div { class: "actions",
-                div { class: "segmented", role: "group", aria_label: "PNG scale",
-                    for scale in [1u32, 2] {
-                        button {
-                            class: if png_scale() == scale { "seg on" } else { "seg" },
-                            aria_pressed: png_scale() == scale,
-                            onclick: move |_| png_scale.set(scale),
-                            "{scale}×"
+                ToggleGroup {
+                    label: "PNG scale",
+                    options: vec![SelectOption::new("1", "1×"), SelectOption::new("2", "2×")],
+                    value: vec![png_scale().to_string()],
+                    onchange: move |values: Vec<String>| {
+                        if let Some(scale) = scale_choice(&values) {
+                            png_scale.set(scale)
                         }
-                    }
+                    },
                 }
                 button {
                     class: "primary",
@@ -53,6 +58,14 @@ mod tests {
     use atelier_ui::theme::ThemeProvider;
 
     #[test]
+    fn the_png_scale_is_one_or_two() {
+        assert_eq!(scale_choice(&["1".into()]), Some(1));
+        assert_eq!(scale_choice(&["2".into()]), Some(2));
+        assert_eq!(scale_choice(&[]), None);
+        assert_eq!(scale_choice(&["3".into()]), None);
+    }
+
+    #[test]
     fn the_theme_toggle_is_the_atelier_ui_one() {
         fn app() -> Element {
             let scale = use_signal(|| 2u32);
@@ -63,5 +76,6 @@ mod tests {
         let html = dioxus_ssr::render(&dom);
         assert!(html.contains(r#"class="btn theme-toggle""#), "{html}");
         assert!(!html.contains("icon theme-toggle"), "the hand-rolled toggle is gone");
+        assert!(html.contains(r#"aria-label="PNG scale""#) && html.contains(r#"class="toggle""#), "{html}");
     }
 }

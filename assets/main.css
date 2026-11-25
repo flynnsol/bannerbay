@@ -121,7 +121,7 @@ section h2 {
 .row { display: flex; gap: 10px; }
 .row .field { flex: 1; min-width: 0; }
 
-button:where(:not(.btn, .input, .checkbox-box)):focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 2px; }
+button:where(:not(.btn, .input, .checkbox-box, .toggle)):focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 2px; }
 
 /* Swatch palette: preset colours plus a rainbow Custom swatch that opens the native picker. */
 .swatches { display: flex; flex-wrap: wrap; gap: var(--space-2); }
@@ -170,7 +170,7 @@ input[type="file"]::file-selector-button {
   transition: background var(--dur-fast), border-color var(--dur-fast);
 }
 
-button:where(:not(.btn, .input, .checkbox-box)) {
+button:where(:not(.btn, .input, .checkbox-box, .toggle)) {
   min-height: var(--target-touch); /* phones; relaxed from 48rem */
   background: var(--glass);
   color: var(--color-text);
@@ -182,7 +182,7 @@ button:where(:not(.btn, .input, .checkbox-box)) {
   box-shadow: inset 0 1px 0 var(--shine);
   transition: background var(--dur-fast), border-color var(--dur-fast), transform var(--dur-fast);
 }
-button:where(:not(.btn, .input, .checkbox-box)):active { transform: translateY(1px); }
+button:where(:not(.btn, .input, .checkbox-box, .toggle)):active { transform: translateY(1px); }
 button.primary {
   background: var(--color-accent);
   border-color: transparent;
@@ -225,27 +225,11 @@ button.reset-fonts { width: 100%; height: auto; padding: 8px 14px; margin: 0 0 1
 /* Small helper text under a field */
 .hint { margin: -6px 0 12px; color: var(--color-text-muted); font-size: 12px; }
 
-/* Segmented control (PNG scale) */
-.segmented {
-  display: inline-flex;
-  padding: 3px;
-  gap: 2px;
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-control);
-  background: var(--glass);
-}
-.segmented button.seg {
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  padding: 6px 12px;
-  border-radius: var(--radius-inner);
-  color: var(--color-text-muted);
-}
-.segmented button.seg.on { background: var(--color-accent-soft); color: var(--color-accent-text); font-weight: 700; }
-/* Full-width segmented field in the panel: equal segments, touch height on phones, 34px from 48rem. */
-.segmented.wide { display: flex; width: 100%; }
-.segmented.wide button.seg { flex: 1 1 0; min-width: 0; min-height: var(--target-touch); padding: 6px 8px; font-size: var(--text-small); }
+/* Single-choice ToggleGroups (atelier-ui): equal segments filling the panel width. */
+.segmented-field .toggle-group { display: flex; width: 100%; }
+.segmented-field .toggle { flex: 1 1 0; min-width: 0; padding-inline: var(--space-2); font-size: var(--text-small); }
+.segmented-field .hint { margin: 0; }
+.actions .toggle-group { flex: none; flex-wrap: nowrap; }
 
 /* Collapsible sections: the body animates its height with a 0fr -> 1fr grid row. */
 .collapsible {
@@ -353,7 +337,6 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
   border-top: 1px solid var(--line);
 }
 .actions > button { flex: 1 1 0; min-width: 0; min-height: var(--target-touch); padding-inline: var(--space-2); }
-.actions .segmented button.seg { min-height: calc(var(--target-touch) - 8px); }
 .wide-only { display: none; }
 
 /* Checkerboard shows through transparent rounded corners. */
@@ -401,7 +384,6 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
     border: 0;
   }
   .actions > button { flex: none; min-height: 0; padding-inline: 16px; }
-  .actions .segmented button.seg { min-height: 0; }
   .wide-only { display: inline; }
   .editor-panel {
     position: sticky;
@@ -414,7 +396,6 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
   }
   .tabs { position: sticky; top: 0; z-index: 2; margin: 0 -18px; padding: var(--space-3) 18px; }
   .tabs button.tab { min-height: 40px; padding: var(--space-2) var(--space-3); }
-  .segmented.wide button.seg { min-height: 34px; }
   .swatch { width: 28px; height: 28px; }
   .collapsible > button.collapsible-head { min-height: 40px; }
   .stage {
@@ -428,7 +409,7 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
   .toolbar { margin-bottom: 14px; font-size: inherit; }
   .checker { padding: 18px; }
   #preview svg { max-height: 78vh; max-height: 78dvh; }
-  button:where(:not(.btn, .input, .checkbox-box)) { min-height: 0; }
+  button:where(:not(.btn, .input, .checkbox-box, .toggle)) { min-height: 0; }
   button.small { min-height: 40px; }
   input[type="file"]::file-selector-button { min-height: 0; }
 }
@@ -442,11 +423,10 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
 
   input[type="file"]::file-selector-button:hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
 
-  button:where(:not(.btn, .input, .checkbox-box)):hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
+  button:where(:not(.btn, .input, .checkbox-box, .toggle)):hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
 
   button.primary:hover { background: var(--color-accent-hover); border-color: transparent; }
 
-  .segmented button.seg:not(.on):hover { color: var(--color-text); background: var(--glass-hover); }
 
   .collapsible > button.collapsible-head:hover { background: var(--glass-hover); color: var(--color-text); }
 

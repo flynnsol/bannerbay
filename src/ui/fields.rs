@@ -1,5 +1,5 @@
 //! Form controls shared by every panel: labelled inputs, sliders, selects and the Style group.
-use atelier_ui::elements::{Checkbox, Field, FieldControl, Select, SelectOption, Slider};
+use atelier_ui::elements::{Checkbox, Field, FieldControl, Select, SelectOption, Slider, ToggleGroup};
 use dioxus::prelude::*;
 
 use crate::model::*;
@@ -151,23 +151,31 @@ impl Segmented for FeatureLayout {
     }
 }
 
-/// A labelled row of buttons for a small option set; the chosen one is pressed.
-pub fn segmented<T: Segmented>(label: &'static str, current: T, on_change: impl FnMut(T) + 'static) -> Element {
-    // A Callback is Copy, so every segment's click handler can share it.
-    let on_change = Callback::new(on_change);
+/// The choice a single-choice ToggleGroup reports: its one value, if it is a known key. Pressing the
+/// already-pressed toggle reports nothing, which leaves the choice as it was.
+pub fn chosen<T: Keyed>(values: &[String]) -> Option<T> {
+    values.first().and_then(|v| T::from_key(v))
+}
+
+/// A labelled single-choice ToggleGroup (atelier-ui) for a small option set. When the short labels
+/// leave something out (sizes, for example), the full label of the current choice shows below.
+pub fn segmented<T: Segmented>(label: &'static str, current: T, mut on_change: impl FnMut(T) + 'static) -> Element {
+    let options: Vec<SelectOption> = T::ALL.iter().map(|o| SelectOption::new(o.key(), o.short())).collect();
     rsx! {
-        div { class: "field",
-            span { "{label}" }
-            div { class: "segmented wide", role: "group", aria_label: label,
-                for opt in T::ALL.iter().copied() {
-                    button {
-                        class: if opt == current { "seg on" } else { "seg" },
-                        title: opt.label(),
-                        aria_pressed: opt == current,
-                        onclick: move |_| on_change.call(opt),
-                        "{opt.short()}"
+        div { class: "field segmented-field",
+            span { aria_hidden: "true", "{label}" }
+            ToggleGroup {
+                label,
+                options,
+                value: vec![current.key().to_string()],
+                onchange: move |values: Vec<String>| {
+                    if let Some(v) = chosen::<T>(&values) {
+                        on_change(v)
                     }
-                }
+                },
+            }
+            if current.short() != current.label() {
+                span { class: "hint", "{current.label()}" }
             }
         }
     }
@@ -258,6 +266,27 @@ mod tests {
         assert!(html.contains(r#"role="checkbox""#) && html.contains(r#"aria-checked="true""#), "{html}");
         assert!(!html.contains(r#"type="checkbox""#), "no native checkbox: {html}");
         assert!(!html.contains("<span>Name</span>"), "old hand-rolled label markup: {html}");
+    }
+
+    #[test]
+    fn a_toggle_group_choice_maps_back_and_an_unpress_changes_nothing() {
+        assert_eq!(chosen::<Preset>(&["square".into()]), Some(Preset::Square));
+        assert_eq!(chosen::<BgKind>(&["dots".into()]), Some(BgKind::Dots));
+        assert_eq!(chosen::<FeatureLayout>(&["vertical".into()]), Some(FeatureLayout::Vertical));
+        assert_eq!(chosen::<Preset>(&[]), None);
+        assert_eq!(chosen::<Preset>(&["huge".into()]), None);
+    }
+
+    #[test]
+    fn segmented_is_a_toggle_group_with_the_full_label_as_a_hint() {
+        fn app() -> Element {
+            rsx! { {segmented("Size", Preset::Social, |_| {})} }
+        }
+        let html = render(app);
+        assert!(html.contains(r#"class="toggle-group""#) && html.contains(r#"aria-label="Size""#), "{html}");
+        assert_eq!(html.matches(r#"aria-pressed="true""#).count(), 1, "{html}");
+        assert!(html.contains("Social / OG card (1200×630)"), "{html}");
+        assert!(!html.contains("seg on"), "{html}");
     }
 
     #[test]

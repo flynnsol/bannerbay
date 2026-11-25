@@ -96,8 +96,9 @@ mod tests {
     #[test]
     fn main_css_classes_do_not_clash_with_atelier_ui() {
         const PENDING: [&str; 6] = ["tab", "tabs", "field", "open", "active", "theme-toggle"];
-        // Named only to keep main.css's generic button rules off the library's controls.
-        const EXCLUDED: [&str; 3] = ["btn", "input", "checkbox-box"];
+        // Library classes main.css names on purpose: to keep its generic button rules off them, or
+        // to lay library components out in the panel.
+        const EXCLUDED: [&str; 5] = ["btn", "input", "checkbox-box", "toggle", "toggle-group"];
         let library = atelier_ui::styles::COMPONENTS_SRC;
         let ours = include_str!("../assets/main.css");
         let names = |css: &str| -> std::collections::BTreeSet<String> {
