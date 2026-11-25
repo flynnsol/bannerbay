@@ -1,55 +1,38 @@
 //! Form controls shared by every panel: labelled inputs, sliders, selects and the Style group.
-use atelier_ui::elements::{Select, SelectOption};
+use atelier_ui::elements::{Checkbox, Field, FieldControl, Select, SelectOption, Slider};
 use dioxus::prelude::*;
 
 use crate::model::*;
 
 use super::collapsible::Collapsible;
 
-pub fn text_field(label: &'static str, value: String, mut on_input: impl FnMut(String) + 'static) -> Element {
-    rsx! {
-        label { class: "field",
-            span { "{label}" }
-            input { r#type: "text", value: "{value}", oninput: move |e| on_input(e.value()) }
-        }
-    }
+pub fn text_field(label: &'static str, value: String, on_input: impl FnMut(String) + 'static) -> Element {
+    rsx! { Field { label, id: field_id(label), value, oninput: on_input } }
 }
 
-pub fn area_field(label: &'static str, value: String, rows: u32, mut on_input: impl FnMut(String) + 'static) -> Element {
-    rsx! {
-        label { class: "field",
-            span { "{label}" }
-            textarea { rows: "{rows}", value: "{value}", oninput: move |e| on_input(e.value()) }
-        }
-    }
+pub fn area_field(label: &'static str, value: String, rows: u32, on_input: impl FnMut(String) + 'static) -> Element {
+    rsx! { Field { label, id: field_id(label), control: FieldControl::Textarea, rows, value, oninput: on_input } }
 }
 
+/// A whole-number slider from 0 to `max`.
 pub fn range_field(label: &'static str, value: u32, max: u32, mut on_input: impl FnMut(u32) + 'static) -> Element {
     rsx! {
-        label { class: "field",
-            span { "{label}: {value}" }
-            input {
-                r#type: "range",
-                min: "0",
-                max: "{max}",
-                value: "{value}",
-                oninput: move |e| {
-                    if let Ok(v) = e.value().parse() {
-                        on_input(v)
-                    }
-                },
-            }
+        Slider {
+            label,
+            value: value as f64,
+            max: max as f64,
+            onchange: move |v: f64| on_input(whole(v, max)),
         }
     }
 }
 
-pub fn check_field(label: &'static str, value: bool, mut on_input: impl FnMut(bool) + 'static) -> Element {
-    rsx! {
-        label { class: "field check",
-            input { r#type: "checkbox", checked: value, onchange: move |e| on_input(e.checked()) }
-            span { "{label}" }
-        }
-    }
+/// A slider value as a whole number within 0..=max.
+fn whole(v: f64, max: u32) -> u32 {
+    v.round().clamp(0.0, max as f64) as u32
+}
+
+pub fn check_field(label: &'static str, value: bool, on_input: impl FnMut(bool) + 'static) -> Element {
+    rsx! { Checkbox { label, checked: value, onchange: on_input } }
 }
 
 /// The font picker's options: every `FONTS` key, in picker category order, each described by its
@@ -119,29 +102,8 @@ pub fn select_field<T: Keyed>(label: &'static str, current: T, mut on_change: im
     }
 }
 
-pub fn slider(
-    label: &'static str,
-    value: f64,
-    (min, max, step): (f64, f64, f64),
-    mut on_input: impl FnMut(f64) + 'static,
-) -> Element {
-    rsx! {
-        label { class: "field",
-            span { "{label}: {value}" }
-            input {
-                r#type: "range",
-                min: "{min}",
-                max: "{max}",
-                step: "{step}",
-                value: "{value}",
-                oninput: move |e| {
-                    if let Ok(v) = e.value().parse() {
-                        on_input(v)
-                    }
-                },
-            }
-        }
-    }
+pub fn slider(label: &'static str, value: f64, (min, max, step): (f64, f64, f64), on_input: impl FnMut(f64) + 'static) -> Element {
+    rsx! { Slider { label, value, min, max, step, onchange: on_input } }
 }
 
 /// A collapsed "Style" group with a Reset button.
@@ -269,6 +231,33 @@ mod tests {
         for id in ["field-heading-font", "field-mark"] {
             assert!(html.contains(&format!(r#"for="{id}""#)) && html.contains(&format!(r#"id="{id}""#)), "{id} is labelled");
         }
+    }
+
+    #[test]
+    fn whole_number_sliders_round_and_stay_in_range() {
+        assert_eq!(whole(44.6, 360), 45);
+        assert_eq!(whole(-3.0, 120), 0);
+        assert_eq!(whole(500.0, 120), 120);
+    }
+
+    #[test]
+    fn inputs_sliders_and_checkboxes_are_atelier_components() {
+        fn app() -> Element {
+            rsx! {
+                {text_field("Name", "Bannerbay".into(), |_| {})}
+                {area_field("Header", "Ship it".into(), 2, |_| {})}
+                {range_field("Angle", 90, 360, |_| {})}
+                {slider("Line height", 1.2, (0.9, 1.8, 0.05), |_| {})}
+                {check_field("Accent glow", true, |_| {})}
+            }
+        }
+        let html = render(app);
+        assert!(html.contains(r#"for="field-name""#) && html.contains(r#"id="field-name""#), "{html}");
+        assert!(html.contains("input--textarea"), "{html}");
+        assert_eq!(html.matches(r#"class="slider-input""#).count(), 2, "{html}");
+        assert!(html.contains(r#"role="checkbox""#) && html.contains(r#"aria-checked="true""#), "{html}");
+        assert!(!html.contains(r#"type="checkbox""#), "no native checkbox: {html}");
+        assert!(!html.contains("<span>Name</span>"), "old hand-rolled label markup: {html}");
     }
 
     #[test]

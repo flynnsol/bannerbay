@@ -117,32 +117,11 @@ section h2 {
 
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
 .field > span, .field > label { color: var(--color-text-muted); font-size: 12px; }
-.field.check { flex-direction: row; align-items: center; gap: 10px; min-height: var(--target-touch); }
-.field.check > span { color: var(--color-text); }
 
 .row { display: flex; gap: 10px; }
 .row .field { flex: 1; min-width: 0; }
 
-/* ---- glass controls ---- */
-input[type="text"], textarea {
-  width: 100%;
-  background: var(--glass);
-  color: var(--color-text);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-control);
-  padding: 10px 14px;
-  font: inherit;
-  font-size: var(--text-input-touch); /* after the shorthand, which would reset it */
-  box-shadow: inset 0 1px 0 var(--shine);
-  transition: border-color var(--dur-fast), background var(--dur-fast), box-shadow var(--dur-fast);
-}
-textarea { resize: vertical; }
-input:focus, textarea:focus {
-  outline: none;
-  border-color: var(--color-accent-text);
-  box-shadow: 0 0 0 3px var(--color-accent-soft);
-}
-button:where(:not(.btn, .input)):focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 2px; }
+button:where(:not(.btn, .input, .checkbox-box)):focus-visible { outline: 2px solid var(--color-accent-text); outline-offset: 2px; }
 
 /* Swatch palette: preset colours plus a rainbow Custom swatch that opens the native picker. */
 .swatches { display: flex; flex-wrap: wrap; gap: var(--space-2); }
@@ -176,35 +155,6 @@ button:where(:not(.btn, .input)):focus-visible { outline: 2px solid var(--color-
   .swatch:hover { transform: scale(1.12); }
 }
 
-input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: var(--target-touch); /* hit area on phones; the track and thumb stay small */
-  background: transparent;
-  cursor: pointer;
-}
-input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: var(--radius-pill); background: var(--glass-border); }
-input[type="range"]::-moz-range-track { height: 6px; border-radius: var(--radius-pill); background: var(--glass-border); }
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 18px; height: 18px; margin-top: -6px;
-  border-radius: 50%;
-  background: var(--color-accent);
-  border: 3px solid var(--color-bg);
-  box-shadow: 0 0 0 1px var(--color-accent), var(--shadow-thumb);
-}
-input[type="range"]::-moz-range-thumb {
-  width: 12px; height: 12px;
-  border-radius: 50%;
-  background: var(--color-accent);
-  border: 3px solid var(--color-bg);
-  box-shadow: 0 0 0 1px var(--color-accent), var(--shadow-thumb);
-}
-input[type="range"]:focus { outline: none; }
-input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--color-accent-soft), 0 0 0 1px var(--color-accent); }
-
-input[type="checkbox"] { accent-color: var(--color-accent); width: 16px; height: 16px; }
 
 input[type="file"] { color: var(--color-text-muted); font: inherit; font-size: 12px; }
 input[type="file"]::file-selector-button {
@@ -220,7 +170,7 @@ input[type="file"]::file-selector-button {
   transition: background var(--dur-fast), border-color var(--dur-fast);
 }
 
-button:where(:not(.btn, .input)) {
+button:where(:not(.btn, .input, .checkbox-box)) {
   min-height: var(--target-touch); /* phones; relaxed from 48rem */
   background: var(--glass);
   color: var(--color-text);
@@ -232,7 +182,7 @@ button:where(:not(.btn, .input)) {
   box-shadow: inset 0 1px 0 var(--shine);
   transition: background var(--dur-fast), border-color var(--dur-fast), transform var(--dur-fast);
 }
-button:where(:not(.btn, .input)):active { transform: translateY(1px); }
+button:where(:not(.btn, .input, .checkbox-box)):active { transform: translateY(1px); }
 button.primary {
   background: var(--color-accent);
   border-color: transparent;
@@ -478,11 +428,8 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
   .toolbar { margin-bottom: 14px; font-size: inherit; }
   .checker { padding: 18px; }
   #preview svg { max-height: 78vh; max-height: 78dvh; }
-  input[type="text"], textarea { font-size: inherit; }
-  button:where(:not(.btn, .input)) { min-height: 0; }
+  button:where(:not(.btn, .input, .checkbox-box)) { min-height: 0; }
   button.small { min-height: 40px; }
-  input[type="range"] { height: 22px; }
-  .field.check { min-height: 0; }
   input[type="file"]::file-selector-button { min-height: 0; }
 }
 
@@ -490,16 +437,12 @@ button.reset { width: 100%; margin-top: 4px; font-size: 12px; padding: 7px 10px;
 @media (hover: hover) and (pointer: fine) {
   .tabs button.tab:not(.on):hover { color: var(--color-text); background: var(--glass-hover); }
 
-  input[type="text"]:hover:not(:focus), textarea:hover:not(:focus) {
-    background-color: var(--glass-hover);
-    border-color: var(--glass-border-hover);
-  }
 
   button.swatch:hover { background: var(--swatch); border-color: var(--glass-border-hover); }
 
   input[type="file"]::file-selector-button:hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
 
-  button:where(:not(.btn, .input)):hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
+  button:where(:not(.btn, .input, .checkbox-box)):hover { background: var(--glass-hover); border-color: var(--glass-border-hover); }
 
   button.primary:hover { background: var(--color-accent-hover); border-color: transparent; }
 
